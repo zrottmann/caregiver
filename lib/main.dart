@@ -518,7 +518,7 @@ class _MainScreenState extends State<MainScreen> {
           ),
           const SizedBox(height: 20),
           const Text(
-            'Christina's Personal Message',
+            "Christina's Personal Message",
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 10),
@@ -552,7 +552,7 @@ class _MainScreenState extends State<MainScreen> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Hi there! I'm Christina Rottmann, and I care deeply about your happiness and wellbeing. My mission is to help you reach your goals through personalized, compassionate assisted living services.',
+                            "Hi there! I'm Christina Rottmann, and I care deeply about your happiness and wellbeing. My mission is to help you reach your goals through personalized, compassionate assisted living services.",
                             style: TextStyle(
                               fontSize: 14,
                               color: Colors.grey[700],
@@ -562,7 +562,7 @@ class _MainScreenState extends State<MainScreen> {
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            'Let's start your wellness journey together!',
+                            "Let's start your wellness journey together!",
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
@@ -957,7 +957,7 @@ class _BookingScreenState extends State<BookingScreen> {
   TimeOfDay _selectedTime = TimeOfDay.now();
   String _selectedCaregiver = 'Sarah Johnson';
   String _selectedService = 'Personal Care';
-  String _selectedLocation = 'Patient\'s Home';
+  String _selectedLocation = "Patient's Home";
   final _descriptionController = TextEditingController();
   final _addressController = TextEditingController();
   
@@ -979,8 +979,8 @@ class _BookingScreenState extends State<BookingScreen> {
   };
   
   final List<String> _locations = [
-    'Patient\'s Home',
-    'Caregiver\'s Location',
+    "Patient's Home",
+    "Caregiver's Location",
     'Medical Facility',
     'Community Center',
     'Custom Location',
@@ -1249,9 +1249,9 @@ class _BookingScreenState extends State<BookingScreen> {
 
   IconData _getLocationIcon(String location) {
     switch (location) {
-      case 'Patient\'s Home':
+      case "Patient's Home":
         return Icons.home;
-      case 'Caregiver\'s Location':
+      case "Caregiver's Location":
         return Icons.business;
       case 'Medical Facility':
         return Icons.local_hospital;
@@ -1266,9 +1266,9 @@ class _BookingScreenState extends State<BookingScreen> {
 
   String _getDefaultAddress(String location) {
     switch (location) {
-      case 'Patient\'s Home':
+      case "Patient's Home":
         return '123 Patient Home St, City, State 12345';
-      case 'Caregiver\'s Location':
+      case "Caregiver's Location":
         return '456 Caregiver Ave, City, State 12345';
       case 'Medical Facility':
         return '789 Hospital Dr, City, State 12345';
@@ -1300,7 +1300,7 @@ class _BookingScreenState extends State<BookingScreen> {
       status: 'confirmed',
       description: _descriptionController.text.isEmpty 
         ? _selectedService 
-        : '${_selectedService} - ${_descriptionController.text}',
+        : '$_selectedService - ${_descriptionController.text}',
       location: _selectedLocation,
       locationAddress: address,
     );
