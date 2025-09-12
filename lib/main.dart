@@ -15,18 +15,18 @@ class CaregiverPlatformApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Caregiver Platform',
+      title: 'Christy Cares',
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF6B73FF),
+          seedColor: const Color(0xFF2E7D8A),
           brightness: Brightness.light,
         ).copyWith(
-          primary: const Color(0xFF6B73FF),
-          secondary: const Color(0xFF9C27B0),
-          tertiary: const Color(0xFF00BCD4),
+          primary: const Color(0xFF2E7D8A),
+          secondary: const Color(0xFF8B5A96),
+          tertiary: const Color(0xFF4CAF50),
           surface: Colors.white,
-          background: const Color(0xFFF8F9FF),
+          background: const Color(0xFFF5F9FA),
         ),
         cardTheme: CardThemeData(
           elevation: 8,
@@ -169,7 +169,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         const SizedBox(height: 24),
                         Text(
-                          'Caregiver Platform',
+                          'Christy Cares',
                           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: Theme.of(context).colorScheme.primary,
@@ -177,7 +177,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Connect with professional caregivers',
+                          'Personalized care with heart, by Christina Rottmann',
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             color: Colors.grey[600],
                           ),
@@ -254,7 +254,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  'Demo Mode: Enter any email and password to continue',
+                                  'Demo Mode: Enter any email and password to experience Christy Cares',
                                   style: TextStyle(
                                     color: Colors.blue[700],
                                     fontSize: 12,
@@ -348,7 +348,7 @@ class _MainScreenState extends State<MainScreen> {
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: Text(
-          'Caregiver Platform',
+          'Christy Cares',
           style: TextStyle(
             fontWeight: FontWeight.bold,
             color: Theme.of(context).colorScheme.primary,
@@ -454,7 +454,7 @@ class _MainScreenState extends State<MainScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Welcome, ${_currentUser?['name'] ?? 'User'}!',
+            'Welcome to Christy Cares, ${_currentUser?['name'] ?? 'Friend'}!',
             style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 20),
@@ -472,9 +472,9 @@ class _MainScreenState extends State<MainScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      _buildStatCard('Appointments', _appointments.length.toString(), Icons.calendar_today),
-                      _buildStatCard('Caregivers', '15', Icons.people),
-                      _buildStatCard('Reviews', '4.8', Icons.star),
+                      _buildStatCard('Care Sessions', _appointments.length.toString(), Icons.calendar_today),
+                      _buildStatCard('Years Experience', '8', Icons.favorite),
+                      _buildStatCard('Satisfaction', '4.9', Icons.star),
                     ],
                   ),
                 ],
@@ -483,13 +483,63 @@ class _MainScreenState extends State<MainScreen> {
           ),
           const SizedBox(height: 20),
           const Text(
-            'Recent Activity',
+            'Christina\\'s Personal Message',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 10),
           Expanded(
             child: _appointments.isEmpty
-              ? const Center(child: Text('No recent appointments'))
+              ? Center(
+                  child: Card(
+                    color: Theme.of(context).colorScheme.primary.withOpacity(0.05),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CircleAvatar(
+                            radius: 30,
+                            backgroundColor: Theme.of(context).colorScheme.primary,
+                            child: const Icon(
+                              Icons.favorite,
+                              color: Colors.white,
+                              size: 32,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'Welcome to Christy Cares!',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Hi there! I\\'m Christina Rottmann, and I care deeply about your happiness and wellbeing. My mission is to help you reach your goals through personalized, compassionate assisted living services.',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[700],
+                              height: 1.4,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Let\\'s start your wellness journey together!',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                )
               : ListView.builder(
                   itemCount: _appointments.length,
                   itemBuilder: (context, index) {
@@ -877,19 +927,20 @@ class _BookingScreenState extends State<BookingScreen> {
   final _addressController = TextEditingController();
   
   final List<String> _caregivers = [
-    'Sarah Johnson',
-    'Mike Davis',
-    'Emily Chen',
-    'Robert Wilson',
-    'Lisa Brown',
+    'Christina Rottmann (Owner)',
+    'Sarah Johnson, RN',
+    'Emily Chen, CNA',
+    'Michael Davis, HHA',
+    'Lisa Brown, PCA',
   ];
   
   final Map<String, double> _services = {
-    'Personal Care': 25.0,
-    'Companion Care': 20.0,
-    'Medical Care': 35.0,
-    'Housekeeping': 18.0,
-    'Transportation': 15.0,
+    'Personal Care & Daily Activities': 45.0,
+    'Companion Care & Emotional Support': 40.0,
+    'Medication Management': 50.0,
+    'Light Housekeeping & Meal Prep': 35.0,
+    'Transportation & Errands': 30.0,
+    'Specialized Dementia Care': 60.0,
   };
   
   final List<String> _locations = [
@@ -1005,7 +1056,7 @@ class _BookingScreenState extends State<BookingScreen> {
                                 children: [
                                   Text(caregiver),
                                   Text(
-                                    '⭐ 4.8 • \$25/hr',
+                                    '⭐ 4.9 • Personalized Care',
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: Colors.grey[600],
