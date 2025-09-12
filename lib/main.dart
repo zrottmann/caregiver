@@ -26,8 +26,7 @@ class CaregiverPlatformApp extends StatelessWidget {
           primary: const Color(0xFF2E7D8A),
           secondary: const Color(0xFF8B5A96),
           tertiary: const Color(0xFF4CAF50),
-          surface: Colors.white,
-          background: const Color(0xFFF5F9FA),
+          surface: const Color(0xFFF5F9FA),
         ),
         cardTheme: CardThemeData(
           elevation: 8,
@@ -153,8 +152,8 @@ class _LoginScreenState extends State<LoginScreen> {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Theme.of(context).colorScheme.primary.withOpacity(0.1),
-              Theme.of(context).colorScheme.secondary.withOpacity(0.1),
+              Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+              Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1),
             ],
           ),
         ),
@@ -174,7 +173,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Icon(
@@ -257,7 +256,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Colors.blue.withOpacity(0.1),
+                            color: Colors.blue.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Column(
@@ -394,7 +393,7 @@ class _MainScreenState extends State<MainScreen> {
           Container(
             margin: const EdgeInsets.only(right: 8),
             decoration: BoxDecoration(
-              color: Colors.red.withOpacity(0.1),
+              color: Colors.red.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: IconButton(
@@ -411,8 +410,8 @@ class _MainScreenState extends State<MainScreen> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Theme.of(context).colorScheme.primary.withOpacity(0.05),
-              Theme.of(context).colorScheme.background,
+              Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
+              Theme.of(context).colorScheme.surface,
             ],
           ),
         ),
@@ -422,7 +421,7 @@ class _MainScreenState extends State<MainScreen> {
         decoration: BoxDecoration(
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               blurRadius: 10,
               offset: const Offset(0, -5),
             ),
@@ -519,7 +518,7 @@ class _MainScreenState extends State<MainScreen> {
           ),
           const SizedBox(height: 20),
           const Text(
-            'Christina\\'s Personal Message',
+            'Christina's Personal Message',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 10),
@@ -527,7 +526,7 @@ class _MainScreenState extends State<MainScreen> {
             child: _appointments.isEmpty
               ? Center(
                   child: Card(
-                    color: Theme.of(context).colorScheme.primary.withOpacity(0.05),
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
                     child: Padding(
                       padding: const EdgeInsets.all(20),
                       child: Column(
@@ -553,7 +552,7 @@ class _MainScreenState extends State<MainScreen> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Hi there! I\\'m Christina Rottmann, and I care deeply about your happiness and wellbeing. My mission is to help you reach your goals through personalized, compassionate assisted living services.',
+                            'Hi there! I'm Christina Rottmann, and I care deeply about your happiness and wellbeing. My mission is to help you reach your goals through personalized, compassionate assisted living services.',
                             style: TextStyle(
                               fontSize: 14,
                               color: Colors.grey[700],
@@ -563,7 +562,7 @@ class _MainScreenState extends State<MainScreen> {
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            'Let\\'s start your wellness journey together!',
+                            'Let's start your wellness journey together!',
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
@@ -592,8 +591,8 @@ class _MainScreenState extends State<MainScreen> {
                         trailing: Chip(
                           label: Text(appointment.status),
                           backgroundColor: appointment.status == 'confirmed' 
-                            ? Colors.green.withOpacity(0.2)
-                            : Colors.orange.withOpacity(0.2),
+                            ? Colors.green.withValues(alpha: 0.2)
+                            : Colors.orange.withValues(alpha: 0.2),
                         ),
                       ),
                     );
@@ -673,8 +672,8 @@ class _MainScreenState extends State<MainScreen> {
                                 Chip(
                                   label: Text(appointment.status),
                                   backgroundColor: appointment.status == 'confirmed' 
-                                    ? Colors.green.withOpacity(0.2)
-                                    : Colors.orange.withOpacity(0.2),
+                                    ? Colors.green.withValues(alpha: 0.2)
+                                    : Colors.orange.withValues(alpha: 0.2),
                                 ),
                               ],
                             ),
@@ -723,8 +722,8 @@ class _MainScreenState extends State<MainScreen> {
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                   decoration: BoxDecoration(
                                     color: _appointmentService.calculateCancellationFee(appointment.dateTime) == 0
-                                      ? Colors.green.withOpacity(0.1)
-                                      : Colors.orange.withOpacity(0.1),
+                                      ? Colors.green.withValues(alpha: 0.1)
+                                      : Colors.orange.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Text(
@@ -770,7 +769,7 @@ class _MainScreenState extends State<MainScreen> {
                                     icon: const Icon(Icons.cancel, size: 16),
                                     label: const Text('Cancel'),
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.red.withOpacity(0.1),
+                                      backgroundColor: Colors.red.withValues(alpha: 0.1),
                                       foregroundColor: Colors.red,
                                       elevation: 0,
                                       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -824,7 +823,7 @@ class _MainScreenState extends State<MainScreen> {
                   const SizedBox(height: 8),
                   Chip(
                     label: Text(_currentUser?['userType'] ?? 'patient'),
-                    backgroundColor: Colors.blue.withOpacity(0.2),
+                    backgroundColor: Colors.blue.withValues(alpha: 0.2),
                   ),
                 ],
               ),
@@ -883,7 +882,7 @@ class _MainScreenState extends State<MainScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: fee == 0 ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+                color: fee == 0 ? Colors.green.withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
@@ -1507,7 +1506,7 @@ class _CaregiverAdminScreenState extends State<CaregiverAdminScreen> {
           Container(
             margin: const EdgeInsets.only(right: 8),
             decoration: BoxDecoration(
-              color: Colors.red.withOpacity(0.1),
+              color: Colors.red.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: IconButton(
@@ -1524,8 +1523,8 @@ class _CaregiverAdminScreenState extends State<CaregiverAdminScreen> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Theme.of(context).colorScheme.primary.withOpacity(0.05),
-              Theme.of(context).colorScheme.background,
+              Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
+              Theme.of(context).colorScheme.surface,
             ],
           ),
         ),

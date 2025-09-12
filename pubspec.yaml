@@ -16,6 +16,10 @@ dependencies:
   intl: ^0.18.1
   table_calendar: ^3.0.9
   url_launcher: ^6.2.1
+  flutter_riverpod: ^2.5.1
+  go_router: ^14.2.7
+  appwrite: ^17.1.0
+  connectivity_plus: ^6.0.5
 
 dev_dependencies:
   flutter_test:
