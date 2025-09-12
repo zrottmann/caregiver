@@ -4,6 +4,7 @@ import 'package:table_calendar/table_calendar.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'services/simple_auth_service.dart';
 import 'services/simple_appointment_service.dart';
+import 'services/denver_rate_service.dart';
 
 void main() {
   runApp(const CaregiverPlatformApp());
@@ -68,6 +69,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
   final SimpleAuthService _authService = SimpleAuthService();
   bool _isLoggedIn = false;
   bool _loading = true;
+  Map<String, dynamic>? _currentUser;
 
   @override
   void initState() {
@@ -77,10 +79,19 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
   Future<void> _checkAuth() async {
     final loggedIn = await _authService.isLoggedIn();
-    setState(() {
-      _isLoggedIn = loggedIn;
-      _loading = false;
-    });
+    if (loggedIn) {
+      final user = await _authService.getCurrentUser();
+      setState(() {
+        _currentUser = user;
+        _isLoggedIn = true;
+        _loading = false;
+      });
+    } else {
+      setState(() {
+        _isLoggedIn = false;
+        _loading = false;
+      });
+    }
   }
 
   void _onLoginSuccess() {
@@ -106,6 +117,11 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
     if (!_isLoggedIn) {
       return LoginScreen(onLoginSuccess: _onLoginSuccess);
+    }
+
+    // Check if user is caregiver for admin mode
+    if (_currentUser?['userType'] == 'caregiver') {
+      return CaregiverAdminScreen(onLogout: _onLogout, currentUser: _currentUser!);
     }
 
     return MainScreen(onLogout: _onLogout);
@@ -244,21 +260,41 @@ class _LoginScreenState extends State<LoginScreen> {
                             color: Colors.blue.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: Row(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Icon(
-                                Icons.info_outline,
-                                color: Colors.blue[700],
-                                size: 20,
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  'Demo Mode: Enter any email and password to experience Christy Cares',
-                                  style: TextStyle(
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.info_outline,
                                     color: Colors.blue[700],
-                                    fontSize: 12,
+                                    size: 20,
                                   ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Demo Mode',
+                                    style: TextStyle(
+                                      color: Colors.blue[700],
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                '👤 Patient Login: Use any regular email',
+                                style: TextStyle(
+                                  color: Colors.blue[700],
+                                  fontSize: 12,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '👩‍⚕️ Caregiver Admin: Use "christina@christycares.com" or any email with "caregiver", "admin", "nurse", or staff member names',
+                                style: TextStyle(
+                                  color: Colors.blue[700],
+                                  fontSize: 12,
                                 ),
                               ),
                             ],
@@ -1416,5 +1452,482 @@ class _PaymentDialogState extends State<PaymentDialog> {
     _cvvController.dispose();
     _nameController.dispose();
     super.dispose();
+  }
+}
+
+class CaregiverAdminScreen extends StatefulWidget {
+  final VoidCallback onLogout;
+  final Map<String, dynamic> currentUser;
+  
+  const CaregiverAdminScreen({
+    super.key, 
+    required this.onLogout, 
+    required this.currentUser,
+  });
+
+  @override
+  State<CaregiverAdminScreen> createState() => _CaregiverAdminScreenState();
+}
+
+class _CaregiverAdminScreenState extends State<CaregiverAdminScreen> {
+  int _currentIndex = 0;
+  final DenverRateService _rateService = DenverRateService();
+  CaregiverProfile? _caregiverProfile;
+  List<AvailabilitySlot> _availabilitySlots = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCaregiverData();
+  }
+
+  Future<void> _loadCaregiverData() async {
+    final caregivers = await _rateService.getCaregivers();
+    final caregiver = caregivers.firstWhere(
+      (c) => c.id == widget.currentUser['id'],
+      orElse: () => caregivers.first,
+    );
+    final slots = await _rateService.getAvailabilitySlots(caregiver.id);
+    
+    setState(() {
+      _caregiverProfile = caregiver;
+      _availabilitySlots = slots;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'Christy Cares - Caregiver Admin',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        actions: [
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              color: Colors.red.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.logout, color: Colors.red),
+              onPressed: widget.onLogout,
+              tooltip: 'Sign Out',
+            ),
+          ),
+        ],
+      ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Theme.of(context).colorScheme.primary.withOpacity(0.05),
+              Theme.of(context).colorScheme.background,
+            ],
+          ),
+        ),
+        child: _buildCurrentScreen(),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
+        currentIndex: _currentIndex,
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
+        selectedItemColor: Theme.of(context).colorScheme.primary,
+        unselectedItemColor: Colors.grey,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.dashboard),
+            label: 'Dashboard',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.schedule),
+            label: 'Schedule',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.attach_money),
+            label: 'Rates',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.analytics),
+            label: 'Analytics',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCurrentScreen() {
+    if (_caregiverProfile == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    switch (_currentIndex) {
+      case 0:
+        return _buildDashboard();
+      case 1:
+        return _buildSchedule();
+      case 2:
+        return _buildRatesScreen();
+      case 3:
+        return _buildAnalytics();
+      default:
+        return _buildDashboard();
+    }
+  }
+
+  Widget _buildDashboard() {
+    final profile = _caregiverProfile!;
+    final bookingPercentage = profile.bookingPercentage;
+    
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Welcome back, ${profile.name}!',
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 20),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Your Performance',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildStatCard('Hours Worked', '${profile.totalHoursWorked}h', Icons.access_time),
+                      _buildStatCard('Booking Rate', '${bookingPercentage.toStringAsFixed(1)}%', Icons.trending_up),
+                      _buildStatCard('Rating', profile.rating.toString(), Icons.star),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Dynamic Rate Multiplier',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.monetization_on,
+                        color: Theme.of(context).colorScheme.primary,
+                        size: 32,
+                      ),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${(DenverRateService.getBookingMultiplier(bookingPercentage) * 100).toStringAsFixed(0)}% of base rate',
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            'Based on your ${bookingPercentage.toStringAsFixed(1)}% booking rate',
+                            style: TextStyle(color: Colors.grey[600]),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  LinearProgressIndicator(
+                    value: bookingPercentage / 100,
+                    backgroundColor: Colors.grey[300],
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      bookingPercentage >= 80 
+                        ? Colors.green 
+                        : bookingPercentage >= 60 
+                          ? Colors.orange 
+                          : Colors.red,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatCard(String title, String value, IconData icon) {
+    return Column(
+      children: [
+        Icon(icon, size: 30, color: Theme.of(context).primaryColor),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        Text(
+          title,
+          style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSchedule() {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Your Schedule',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+              ElevatedButton.icon(
+                onPressed: _showAddAvailabilityDialog,
+                icon: const Icon(Icons.add),
+                label: const Text('Add Hours'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Expanded(
+            child: _availabilitySlots.isEmpty
+              ? const Center(
+                  child: Text(
+                    'No availability set. Add your available hours to start receiving bookings.',
+                    textAlign: TextAlign.center,
+                  ),
+                )
+              : ListView.builder(
+                  itemCount: _availabilitySlots.length,
+                  itemBuilder: (context, index) {
+                    final slot = _availabilitySlots[index];
+                    return Card(
+                      child: ListTile(
+                        leading: Icon(
+                          slot.isBooked ? Icons.event_busy : Icons.event_available,
+                          color: slot.isBooked ? Colors.red : Colors.green,
+                        ),
+                        title: Text(
+                          DateFormat('EEEE, MMM dd').format(slot.startTime),
+                        ),
+                        subtitle: Text(
+                          '${DateFormat('h:mm a').format(slot.startTime)} - ${DateFormat('h:mm a').format(slot.endTime)}',
+                        ),
+                        trailing: slot.isBooked
+                          ? const Chip(
+                              label: Text('Booked'),
+                              backgroundColor: Colors.red,
+                            )
+                          : const Chip(
+                              label: Text('Available'),
+                              backgroundColor: Colors.green,
+                            ),
+                      ),
+                    );
+                  },
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRatesScreen() {
+    final profile = _caregiverProfile!;
+    
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Your Current Rates',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Based on Denver, CO market rates with your ${profile.bookingPercentage.toStringAsFixed(1)}% booking rate',
+            style: TextStyle(color: Colors.grey[600]),
+          ),
+          const SizedBox(height: 20),
+          Expanded(
+            child: ListView(
+              children: DenverRateService.denverBaseRates.entries.map((entry) {
+                final dynamicRate = _rateService.calculateDynamicRate(
+                  serviceType: entry.key,
+                  bookingPercentage: profile.bookingPercentage,
+                  credentials: profile.credentials,
+                  rating: profile.rating,
+                );
+                
+                return Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          entry.key,
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Base Rate: \$${entry.value.toStringAsFixed(2)}/hr',
+                              style: TextStyle(color: Colors.grey[600]),
+                            ),
+                            Text(
+                              'Your Rate: \$${dynamicRate.toStringAsFixed(2)}/hr',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        LinearProgressIndicator(
+                          value: (dynamicRate - entry.value) / entry.value,
+                          backgroundColor: Colors.grey[300],
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAnalytics() {
+    final profile = _caregiverProfile!;
+    final totalEarnings = profile.totalHoursWorked * profile.baseRate;
+    
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Your Analytics',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 20),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Earnings Summary',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildStatCard('Total Earnings', '\$${totalEarnings.toStringAsFixed(0)}', Icons.attach_money),
+                      _buildStatCard('Avg Rate', '\$${profile.baseRate.toStringAsFixed(2)}/hr', Icons.trending_up),
+                      _buildStatCard('Experience', '${DateTime.now().year - profile.joinDate.year}+ years', Icons.star),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Rate Multipliers',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildMultiplierRow('Booking Rate Bonus', DenverRateService.getBookingMultiplier(profile.bookingPercentage)),
+                  _buildMultiplierRow('Experience Bonus (${profile.credentials})', DenverRateService.getExperienceMultiplier(profile.credentials)),
+                  _buildMultiplierRow('Rating Bonus', profile.rating >= 4.8 ? 1.1 : (profile.rating >= 4.5 ? 1.05 : 1.0)),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMultiplierRow(String label, double multiplier) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label),
+          Text(
+            '${(multiplier * 100).toStringAsFixed(0)}%',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: multiplier > 1.0 ? Colors.green : Colors.grey[600],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAddAvailabilityDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Add Availability'),
+        content: const Text(
+          'Schedule management coming soon! You can add your available hours and Christina will help coordinate with patient bookings.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 }
