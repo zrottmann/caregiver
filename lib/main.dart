@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'services/simple_auth_service.dart';
 import 'services/simple_appointment_service.dart';
 import 'services/denver_rate_service.dart';
+import 'services/messaging_service.dart';
 
 void main() {
   runApp(const CaregiverPlatformApp());
@@ -359,8 +360,12 @@ class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
   final SimpleAppointmentService _appointmentService = SimpleAppointmentService();
   final SimpleAuthService _authService = SimpleAuthService();
+  final MessagingService _messagingService = MessagingService();
   List<SimpleAppointment> _appointments = [];
+  List<Message> _messages = [];
   Map<String, dynamic>? _currentUser;
+  int _unreadMessageCount = 0;
+  String get _userType => _currentUser?['userType'] ?? 'patient';
 
   @override
   void initState() {
@@ -371,9 +376,14 @@ class _MainScreenState extends State<MainScreen> {
   Future<void> _loadData() async {
     final user = await _authService.getCurrentUser();
     final appointments = await _appointmentService.getAppointments();
+    final messages = await _messagingService.getLocalMessages();
+    final unreadCount = await _messagingService.getUnreadCount(user?['id'] ?? '');
+
     setState(() {
       _currentUser = user;
       _appointments = appointments;
+      _messages = messages;
+      _unreadMessageCount = unreadCount;
     });
   }
 
@@ -457,6 +467,11 @@ class _MainScreenState extends State<MainScreen> {
               label: 'Appointments',
             ),
             BottomNavigationBarItem(
+              icon: Icon(Icons.message_outlined),
+              activeIcon: Icon(Icons.message),
+              label: 'Messages',
+            ),
+            BottomNavigationBarItem(
               icon: Icon(Icons.person_outline),
               activeIcon: Icon(Icons.person),
               label: 'Profile',
@@ -476,6 +491,8 @@ class _MainScreenState extends State<MainScreen> {
       case 2:
         return _buildAppointmentsScreen();
       case 3:
+        return _buildMessagesScreen();
+      case 4:
         return _buildProfileScreen();
       default:
         return _buildHomeScreen();
@@ -864,6 +881,405 @@ class _MainScreenState extends State<MainScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildMessagesScreen() {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Text(
+                'Messages',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+              const Spacer(),
+              if (_unreadMessageCount > 0)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.red,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '$_unreadMessageCount new',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.blue.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.sync, color: Colors.blue[700], size: 16),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Messages sync across email, SMS, and this app',
+                    style: TextStyle(color: Colors.blue[700], fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Expanded(
+            child: _messages.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.message_outlined, size: 64, color: Colors.grey[400]),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No messages yet',
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Start a conversation with your caregiver',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[500],
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.builder(
+                  itemCount: _messages.length,
+                  itemBuilder: (context, index) {
+                    final message = _messages[index];
+                    final isFromMe = message.senderId == (_currentUser?['id'] ?? '');
+
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      color: message.isRead ? null : Colors.blue.withValues(alpha: 0.05),
+                      child: InkWell(
+                        onTap: () => _showMessageDialog(message),
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 16,
+                                    backgroundColor: isFromMe ? Colors.blue : Colors.green,
+                                    child: Text(
+                                      isFromMe ? 'Me' : message.senderName.substring(0, 1),
+                                      style: const TextStyle(color: Colors.white, fontSize: 12),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          isFromMe ? 'To: ${message.recipientName}' : message.senderName,
+                                          style: const TextStyle(fontWeight: FontWeight.bold),
+                                        ),
+                                        Text(
+                                          _formatDateTime(message.timestamp),
+                                          style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  if (!message.isRead && !isFromMe)
+                                    Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: const BoxDecoration(
+                                        color: Colors.blue,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                message.content,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Colors.grey[700],
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Icon(
+                                    message.channel == MessageChannel.email
+                                      ? Icons.email
+                                      : message.channel == MessageChannel.sms
+                                        ? Icons.phone
+                                        : Icons.chat,
+                                    size: 14,
+                                    color: Colors.grey[500],
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    message.channel.toString().split('.').last.toUpperCase(),
+                                    style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: _showNewMessageDialog,
+            icon: const Icon(Icons.add),
+            label: const Text('New Message'),
+            style: ElevatedButton.styleFrom(
+              minimumSize: const Size(double.infinity, 48),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDateTime(DateTime dateTime) {
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+
+    if (difference.inDays == 0) {
+      if (difference.inHours == 0) {
+        if (difference.inMinutes == 0) {
+          return 'Just now';
+        }
+        return '${difference.inMinutes}m ago';
+      }
+      return '${difference.inHours}h ago';
+    } else if (difference.inDays == 1) {
+      return 'Yesterday';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays} days ago';
+    } else {
+      return DateFormat('MMM d').format(dateTime);
+    }
+  }
+
+  void _showMessageDialog(Message message) async {
+    if (!message.isRead) {
+      await _messagingService.markAsRead(message.id);
+      await _loadData();
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(message.senderName),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              DateFormat('MMM d, yyyy h:mm a').format(message.timestamp),
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            ),
+            const SizedBox(height: 16),
+            Text(message.content),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Icon(
+                  message.channel == MessageChannel.email
+                    ? Icons.email
+                    : message.channel == MessageChannel.sms
+                      ? Icons.phone
+                      : Icons.chat,
+                  size: 16,
+                  color: Colors.grey[600],
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  'Sent via ${message.channel.toString().split('.').last}',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                ),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _showReplyDialog(message);
+            },
+            icon: const Icon(Icons.reply, size: 16),
+            label: const Text('Reply'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showNewMessageDialog() {
+    final contentController = TextEditingController();
+    final recipientController = TextEditingController(
+      text: _userType == 'caregiver' ? 'Patient' : 'Christina Rottmann',
+    );
+
+    MessageChannel selectedChannel = MessageChannel.all;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('New Message'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: recipientController,
+                  decoration: const InputDecoration(
+                    labelText: 'To',
+                    border: OutlineInputBorder(),
+                  ),
+                  readOnly: true,
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: contentController,
+                  decoration: const InputDecoration(
+                    labelText: 'Message',
+                    hintText: 'Type your message here...',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 5,
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Send via:',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      RadioListTile<MessageChannel>(
+                        value: MessageChannel.all,
+                        groupValue: selectedChannel,
+                        onChanged: (value) => setState(() => selectedChannel = value!),
+                        title: const Text('All channels (App + Email + SMS)'),
+                        subtitle: const Text('Ensures delivery everywhere'),
+                        dense: true,
+                      ),
+                      RadioListTile<MessageChannel>(
+                        value: MessageChannel.inApp,
+                        groupValue: selectedChannel,
+                        onChanged: (value) => setState(() => selectedChannel = value!),
+                        title: const Text('In-app only'),
+                        subtitle: const Text('Quick, no notifications'),
+                        dense: true,
+                      ),
+                      RadioListTile<MessageChannel>(
+                        value: MessageChannel.email,
+                        groupValue: selectedChannel,
+                        onChanged: (value) => setState(() => selectedChannel = value!),
+                        title: const Text('Email only'),
+                        subtitle: const Text('For longer messages'),
+                        dense: true,
+                      ),
+                      RadioListTile<MessageChannel>(
+                        value: MessageChannel.sms,
+                        groupValue: selectedChannel,
+                        onChanged: (value) => setState(() => selectedChannel = value!),
+                        title: const Text('SMS only'),
+                        subtitle: const Text('For urgent messages'),
+                        dense: true,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton.icon(
+              onPressed: () => _sendMessage(
+                recipientController.text,
+                contentController.text,
+                selectedChannel,
+              ),
+              icon: const Icon(Icons.send, size: 16),
+              label: const Text('Send'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showReplyDialog(Message originalMessage) {
+    _showNewMessageDialog();
+  }
+
+  Future<void> _sendMessage(String recipient, String content, MessageChannel channel) async {
+    if (content.trim().isEmpty) {
+      _showSnackBar('Please enter a message');
+      return;
+    }
+
+    try {
+      await _messagingService.sendMessage(
+        senderId: _currentUser?['id'] ?? '',
+        senderName: _currentUser?['name'] ?? 'User',
+        recipientId: _userType == 'caregiver' ? 'patient-1' : 'caregiver-1',
+        recipientName: recipient,
+        content: content,
+        channel: channel,
+        recipientEmail: _userType == 'caregiver' ? 'patient@example.com' : 'christina@christycares.com',
+        recipientPhone: _userType == 'caregiver' ? '+13035551234' : '+13035550123',
+      );
+
+      await _loadData();
+      Navigator.of(context).pop();
+      _showSnackBar('Message sent successfully!');
+    } catch (e) {
+      _showSnackBar('Failed to send message: ${e.toString()}');
+    }
   }
 
   Future<void> _openInGoogleMaps(String address) async {
