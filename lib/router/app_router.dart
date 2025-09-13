@@ -19,6 +19,7 @@ import '../screens/booking/booking_confirmation_screen.dart';
 import '../screens/booking/booking_history_screen.dart';
 import '../screens/chat/chat_list_screen.dart';
 import '../screens/chat/chat_room_screen.dart';
+import '../screens/chat/broadcast_chat_screen.dart';
 import '../screens/payment/payment_screen.dart';
 import '../screens/payment/enhanced_payment_screen.dart';
 import '../screens/appointments/calendar_screen.dart';
@@ -176,6 +177,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           final chatId = state.pathParameters['chatId']!;
           return ChatRoomScreen(chatId: chatId);
         },
+      ),
+      GoRoute(
+        path: '/broadcast-chat',
+        name: 'broadcast-chat',
+        builder: (context, state) => const BroadcastChatScreen(),
       ),
       
       // Payment Routes

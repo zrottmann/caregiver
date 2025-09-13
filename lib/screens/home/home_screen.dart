@@ -37,7 +37,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   context.push('/profile');
                   break;
                 case 'chats':
-                  context.push('/chats');
+                  context.push('/broadcast-chat');
                   break;
                 case 'logout':
                   await ref.read(authNotifierProvider.notifier).signOut();
@@ -178,8 +178,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 context,
                 icon: Icons.chat,
                 title: 'Messages',
-                subtitle: 'Chat with caregivers',
-                onTap: () => context.push('/chats'),
+                subtitle: 'Community chat',
+                onTap: () => context.push('/broadcast-chat'),
               ),
               _buildActionCard(
                 context,
@@ -277,8 +277,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 context,
                 icon: Icons.chat,
                 title: 'Messages',
-                subtitle: 'Chat with clients',
-                onTap: () => context.push('/chats'),
+                subtitle: 'Community chat',
+                onTap: () => context.push('/broadcast-chat'),
               ),
               _buildActionCard(
                 context,

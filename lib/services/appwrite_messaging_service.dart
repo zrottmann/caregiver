@@ -406,4 +406,69 @@ class AppwriteMessagingService {
       throw Exception('Failed to search messages: $e');
     }
   }
+
+  /// Send a broadcast message to all users (for community chat)
+  Future<models.Document> sendBroadcastMessage({
+    required String senderId,
+    required String senderName,
+    required String content,
+    String? subject,
+  }) async {
+    try {
+      // Create broadcast message document with special recipient ID 'broadcast'
+      final message = await _appwrite.databases.createDocument(
+        databaseId: EnvConfig.databaseId,
+        collectionId: messagesCollection,
+        documentId: ID.unique(),
+        data: {
+          'senderId': senderId,
+          'senderName': senderName,
+          'senderEmail': '',
+          'senderPhone': '',
+          'recipientId': 'broadcast', // Special ID for broadcast messages
+          'recipientName': 'All Users',
+          'recipientEmail': '',
+          'recipientPhone': '',
+          'content': content,
+          'subject': subject ?? 'Community message from $senderName',
+          'timestamp': DateTime.now().toIso8601String(),
+          'isRead': false,
+          'readAt': null,
+          'channel': 'app',
+          'status': 'broadcast',
+          'attachments': [],
+          'metadata': jsonEncode({'type': 'broadcast'}),
+        },
+      );
+
+      return message;
+    } catch (e) {
+      throw Exception('Failed to send broadcast message: $e');
+    }
+  }
+
+  /// Get all broadcast messages (community chat)
+  Future<List<Message>> getAllMessages({int limit = 100}) async {
+    try {
+      final response = await _appwrite.databases.listDocuments(
+        databaseId: EnvConfig.databaseId,
+        collectionId: messagesCollection,
+        queries: [
+          Query.equal('recipientId', 'broadcast'), // Get only broadcast messages
+          Query.orderAsc('\$createdAt'), // Oldest first for chat display
+          Query.limit(limit),
+        ],
+      );
+
+      return response.documents.map((doc) => Message(
+        id: doc.\$id,
+        senderId: doc.data['senderId'] ?? '',
+        senderName: doc.data['senderName'] ?? 'Unknown',
+        content: doc.data['content'] ?? '',
+        timestamp: DateTime.parse(doc.data['timestamp'] ?? DateTime.now().toIso8601String()),
+      )).toList();
+    } catch (e) {
+      throw Exception('Failed to get messages: $e');
+    }
+  }
 }
