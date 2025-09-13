@@ -35,22 +35,27 @@ class EnvConfig {
   static String? apnsTeamId;
 
   static Future<void> init() async {
-    await dotenv.load(fileName: '.env');
+    try {
+      await dotenv.load(fileName: '.env');
+    } catch (e) {
+      // .env file might not exist in web deployment, use environment variables or defaults
+      print('Warning: .env file not found, using defaults: $e');
+    }
 
     // Required Appwrite Configuration
     appwriteEndpoint = dotenv.env['APPWRITE_ENDPOINT'] ?? 'https://cloud.appwrite.io/v1';
-    appwriteProjectId = dotenv.env['APPWRITE_PROJECT_ID'] ?? '';
+    appwriteProjectId = dotenv.env['APPWRITE_PROJECT_ID'] ?? '689fd36e0032936147b1';
     appwriteApiKey = dotenv.env['APPWRITE_API_KEY'] ?? '';
 
     // Database Configuration
-    databaseId = dotenv.env['APPWRITE_DATABASE_ID'] ?? '';
-    appointmentsCollectionId = dotenv.env['APPWRITE_APPOINTMENTS_COLLECTION_ID'] ?? '';
-    patientsCollectionId = dotenv.env['APPWRITE_PATIENTS_COLLECTION_ID'] ?? '';
-    caregiversCollectionId = dotenv.env['APPWRITE_CAREGIVERS_COLLECTION_ID'] ?? '';
-    messagesCollectionId = dotenv.env['APPWRITE_MESSAGES_COLLECTION_ID'] ?? '';
+    databaseId = dotenv.env['APPWRITE_DATABASE_ID'] ?? 'christy-cares-db';
+    appointmentsCollectionId = dotenv.env['APPWRITE_APPOINTMENTS_COLLECTION_ID'] ?? 'appointments';
+    patientsCollectionId = dotenv.env['APPWRITE_PATIENTS_COLLECTION_ID'] ?? 'patients';
+    caregiversCollectionId = dotenv.env['APPWRITE_CAREGIVERS_COLLECTION_ID'] ?? 'caregivers';
+    messagesCollectionId = dotenv.env['APPWRITE_MESSAGES_COLLECTION_ID'] ?? 'messages';
 
     // Function Configuration
-    emailFunctionId = dotenv.env['APPWRITE_EMAIL_FUNCTION_ID'] ?? '';
+    emailFunctionId = dotenv.env['APPWRITE_EMAIL_FUNCTION_ID'] ?? '68c5c9dc0036c5a66172';
     smsFunctionId = dotenv.env['APPWRITE_SMS_FUNCTION_ID'] ?? '';
     pushFunctionId = dotenv.env['APPWRITE_PUSH_FUNCTION_ID'] ?? '';
 
