@@ -1207,10 +1207,10 @@ class _MainScreenState extends State<MainScreen> {
                         dense: true,
                       ),
                       RadioListTile<MessageChannel>(
-                        value: MessageChannel.inApp,
+                        value: MessageChannel.app,
                         groupValue: selectedChannel,
                         onChanged: (value) => setState(() => selectedChannel = value!),
-                        title: const Text('In-app only'),
+                        title: const Text('App only'),
                         subtitle: const Text('Quick, no notifications'),
                         dense: true,
                       ),
@@ -1383,6 +1383,26 @@ class _MainScreenState extends State<MainScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  void _showEditAppointmentDialog(SimpleAppointment appointment) {
+    // For now, show a simple message
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Edit functionality coming soon')),
+    );
+  }
+
+  void _showEditProfileDialog() {
+    // For now, show a simple message
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Profile edit coming soon')),
+    );
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
     );
   }
 }
@@ -1916,8 +1936,11 @@ class CaregiverAdminScreen extends StatefulWidget {
 class _CaregiverAdminScreenState extends State<CaregiverAdminScreen> {
   int _currentIndex = 0;
   final DenverRateService _rateService = DenverRateService();
+  final SimpleAppointmentService _appointmentService = SimpleAppointmentService();
   CaregiverProfile? _caregiverProfile;
   List<AvailabilitySlot> _availabilitySlots = [];
+  List<SimpleAppointment> _appointments = [];
+  String get _userType => 'caregiver';
 
   @override
   void initState() {
@@ -1932,10 +1955,19 @@ class _CaregiverAdminScreenState extends State<CaregiverAdminScreen> {
       orElse: () => caregivers.first,
     );
     final slots = await _rateService.getAvailabilitySlots(caregiver.id);
-    
+
     setState(() {
       _caregiverProfile = caregiver;
       _availabilitySlots = slots;
+    });
+
+    await _loadAppointments();
+  }
+
+  Future<void> _loadAppointments() async {
+    final appointments = await _appointmentService.getAppointments();
+    setState(() {
+      _appointments = appointments;
     });
   }
 

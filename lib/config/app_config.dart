@@ -1,10 +1,12 @@
 class AppConfig {
   // Appwrite Configuration
+  static const String endpoint = 'https://cloud.appwrite.io/v1';
+  static const String projectId = 'christy-cares-app';
   static const String appwriteEndpoint = 'https://cloud.appwrite.io/v1';
   static const String appwriteProjectId = 'christy-cares-app';
-  
+
   // Database IDs
-  static const String databaseId = 'caregiver-platform';
+  static const String databaseId = 'christy_cares_db';
   
   // Collection IDs
   static const String profilesCollectionId = 'profiles';

@@ -14,16 +14,18 @@ class AppwriteService {
   late Databases databases;
   late Storage storage;
   late Realtime realtime;
-  
+  late Functions functions;
+
   Future<void> initialize() async {
     client = Client()
         .setEndpoint(AppConfig.appwriteEndpoint)
         .setProject(AppConfig.appwriteProjectId);
-    
+
     account = Account(client);
     databases = Databases(client);
     storage = Storage(client);
     realtime = Realtime(client);
+    functions = Functions(client);
   }
   
   // Helper method to get current user
