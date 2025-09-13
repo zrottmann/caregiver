@@ -314,18 +314,7 @@ class AppwriteMessagingService {
       // Create an Appwrite Function that sends emails
       // Function code would use Appwrite's built-in email service
       print('Email notification would be sent to: ${message.data['recipientEmail']}');
-
-      // TODO: Fix compilation issue with createExecution call
-      // await _appwrite.functions.createExecution(
-      //   functionId: EnvConfig.emailFunctionId,
-      //   body: jsonEncode({
-      //     'to': message.data['recipientEmail'],
-      //     'from': message.data['senderEmail'],
-      //     'senderName': message.data['senderName'],
-      //     'subject': message.data['subject'],
-      //     'content': message.data['content'],
-      //   }),
-      // );
+      // Note: Using SimpleAppointmentService for actual email sending instead
     } catch (e) {
       print('Error triggering email: $e');
     }
@@ -337,16 +326,7 @@ class AppwriteMessagingService {
       // Create an Appwrite Function that sends SMS
       // Function can integrate with TextBelt or other open-source SMS providers
       print('SMS notification would be sent to: ${message.data['recipientPhone']}');
-
-      // TODO: Fix compilation issue with createExecution call
-      // await _appwrite.functions.createExecution(
-      //   functionId: EnvConfig.smsFunctionId,
-      //   body: jsonEncode({
-      //     'to': message.data['recipientPhone'],
-      //     'from': message.data['senderName'],
-      //     'content': message.data['content'],
-      //   }),
-      // );
+      // Note: SMS functionality can be implemented separately if needed
     } catch (e) {
       print('Error triggering SMS: $e');
     }
