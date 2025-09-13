@@ -15,14 +15,14 @@ class SimpleAuthService {
       final emailLower = email.toLowerCase();
       
       // Check for caregiver email patterns
-      if (emailLower.contains("christina") ||
+      if (emailLower.endsWith("@christycares.com") ||
+          emailLower == "christina@christycares.com" ||
+          emailLower.contains("christina") ||
           emailLower.contains("christy") ||
           emailLower.contains("caregiver") ||
           emailLower.contains("admin") ||
           emailLower.contains("nurse") ||
           emailLower.contains("staff") ||
-          emailLower.contains("care") ||
-          emailLower.endsWith("@christycares.com") ||
           emailLower.startsWith("admin@") ||
           emailLower.startsWith("caregiver@") ||
           emailLower.startsWith("nurse@")) {
