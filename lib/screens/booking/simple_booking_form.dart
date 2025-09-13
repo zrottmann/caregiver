@@ -101,13 +101,27 @@ class _SimpleBookingFormState extends State<SimpleBookingForm> {
         patientName: _patientNameController.text.trim(),
       );
 
-      await _appointmentService.bookAppointment(appointment);
+      final bookingResult = await _appointmentService.bookAppointment(appointment);
 
       if (mounted) {
+        // Show appointment booking status with email feedback
+        String message = '✅ Appointment booked successfully!';
+        Color backgroundColor = Colors.green;
+
+        if (bookingResult['emailStatus'] == 'sent') {
+          message += ' Confirmation email sent to ${_patientEmailController.text.trim()}.';
+        } else if (bookingResult['emailStatus'] == 'failed') {
+          message += ' ⚠️ Failed to send confirmation email.';
+          backgroundColor = Colors.orange;
+        } else {
+          message += ' No confirmation email sent (no email provided).';
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ Appointment booked successfully! Confirmation email sent.'),
-            backgroundColor: Colors.green,
+          SnackBar(
+            content: Text(message),
+            backgroundColor: backgroundColor,
+            duration: const Duration(seconds: 4),
           ),
         );
 

@@ -72,7 +72,7 @@ class SimpleAppointmentService {
         .toList();
   }
   
-  Future<void> bookAppointment(SimpleAppointment appointment) async {
+  Future<Map<String, dynamic>> bookAppointment(SimpleAppointment appointment) async {
     final appointments = await getAppointments();
     appointments.add(appointment);
 
@@ -83,15 +83,32 @@ class SimpleAppointmentService {
 
     await prefs.setStringList(_appointmentsKey, appointmentsJson);
 
+    // Track email status
+    String emailStatus = 'not_sent';
+    String emailMessage = '';
+
     // Send confirmation email if patient email is provided
     if (appointment.patientEmail != null && appointment.patientEmail!.isNotEmpty) {
       try {
         await _sendAppointmentConfirmationEmail(appointment);
+        emailStatus = 'sent';
+        emailMessage = 'Confirmation email sent to ${appointment.patientEmail}';
       } catch (e) {
         print('Failed to send confirmation email: $e');
+        emailStatus = 'failed';
+        emailMessage = 'Failed to send confirmation email: ${e.toString()}';
         // Don't throw error - appointment booking should still succeed
       }
+    } else {
+      emailMessage = 'No email address provided';
     }
+
+    return {
+      'success': true,
+      'emailStatus': emailStatus,
+      'emailMessage': emailMessage,
+      'appointmentId': appointment.id,
+    };
   }
   
   double calculateCancellationFee(DateTime appointmentDateTime) {
