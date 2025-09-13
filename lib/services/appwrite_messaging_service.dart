@@ -87,7 +87,7 @@ class AppwriteMessagingService {
           'senderName': senderName,
           'senderEmail': senderEmail,
           'senderPhone': senderPhone ?? '',
-          'recipientId': recipientId,
+          'receiverId': recipientId,
           'recipientName': recipientName,
           'recipientEmail': recipientEmail,
           'recipientPhone': recipientPhone ?? '',
@@ -141,7 +141,7 @@ class AppwriteMessagingService {
         databaseId: EnvConfig.databaseId,
         collectionId: messagesCollection,
         queries: [
-          Query.equal('recipientId', userId),
+          Query.equal('receiverId', userId),
           Query.orderDesc('\$createdAt'),
           Query.limit(limit),
         ],
@@ -167,11 +167,11 @@ class AppwriteMessagingService {
           Query.or([
             Query.and([
               Query.equal('senderId', userId1),
-              Query.equal('recipientId', userId2),
+              Query.equal('receiverId', userId2),
             ]),
             Query.and([
               Query.equal('senderId', userId2),
-              Query.equal('recipientId', userId1),
+              Query.equal('receiverId', userId1),
             ]),
           ]),
           Query.orderDesc('timestamp'),
@@ -210,7 +210,7 @@ class AppwriteMessagingService {
         databaseId: EnvConfig.databaseId,
         collectionId: messagesCollection,
         queries: [
-          Query.equal('recipientId', userId),
+          Query.equal('receiverId', userId),
           Query.equal('isRead', false),
         ],
       );
@@ -366,7 +366,7 @@ class AppwriteMessagingService {
     ]).stream.listen((response) {
       if (response.events.contains('databases.*.collections.*.documents.*.create')) {
         final message = models.Document.fromMap(response.payload);
-        if (message.data['recipientId'] == userId) {
+        if (message.data['receiverId'] == userId) {
           onMessage(message);
         }
       }
@@ -395,7 +395,7 @@ class AppwriteMessagingService {
         queries: [
           Query.or([
             Query.equal('senderId', userId),
-            Query.equal('recipientId', userId),
+            Query.equal('receiverId', userId),
           ]),
           Query.search('content', searchTerm),
           Query.orderDesc('timestamp'),
@@ -426,7 +426,7 @@ class AppwriteMessagingService {
           'senderName': senderName,
           'senderEmail': '',
           'senderPhone': '',
-          'recipientId': 'broadcast', // Special ID for broadcast messages
+          'receiverId': 'broadcast', // Special ID for broadcast messages
           'recipientName': 'All Users',
           'recipientEmail': '',
           'recipientPhone': '',
@@ -455,7 +455,7 @@ class AppwriteMessagingService {
         databaseId: EnvConfig.databaseId,
         collectionId: messagesCollection,
         queries: [
-          Query.equal('recipientId', 'broadcast'), // Get only broadcast messages
+          Query.equal('receiverId', 'broadcast'), // Get only broadcast messages
           Query.orderAsc('\$createdAt'), // Oldest first for chat display
           Query.limit(limit),
         ],
