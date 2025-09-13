@@ -87,8 +87,11 @@ class EnvConfig {
 
   static bool get isConfigured {
     return appwriteProjectId.isNotEmpty &&
-           appwriteApiKey.isNotEmpty &&
            databaseId.isNotEmpty;
+  }
+
+  static bool get isServerConfigured {
+    return isConfigured && appwriteApiKey.isNotEmpty;
   }
 
   static bool get hasEmailFunction => emailFunctionId.isNotEmpty;
