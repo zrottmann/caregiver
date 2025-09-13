@@ -5,7 +5,8 @@ import 'package:url_launcher/url_launcher.dart';
 import 'services/simple_auth_service.dart';
 import 'services/simple_appointment_service.dart';
 import 'services/denver_rate_service.dart';
-import 'services/messaging_service.dart';
+import 'services/appwrite_messaging_service.dart';
+import 'models/message.dart';
 
 void main() {
   runApp(const CaregiverPlatformApp());
@@ -360,7 +361,7 @@ class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
   final SimpleAppointmentService _appointmentService = SimpleAppointmentService();
   final SimpleAuthService _authService = SimpleAuthService();
-  final MessagingService _messagingService = MessagingService();
+  final AppwriteMessagingService _messagingService = AppwriteMessagingService();
   List<SimpleAppointment> _appointments = [];
   List<Message> _messages = [];
   Map<String, dynamic>? _currentUser;
@@ -376,7 +377,10 @@ class _MainScreenState extends State<MainScreen> {
   Future<void> _loadData() async {
     final user = await _authService.getCurrentUser();
     final appointments = await _appointmentService.getAppointments();
-    final messages = await _messagingService.getLocalMessages();
+
+    // Load messages from Appwrite
+    final messageDocs = await _messagingService.getMessages(user?['id'] ?? '');
+    final messages = messageDocs.map((doc) => Message.fromDocument(doc)).toList();
     final unreadCount = await _messagingService.getUnreadCount(user?['id'] ?? '');
 
     setState(() {
@@ -1266,12 +1270,14 @@ class _MainScreenState extends State<MainScreen> {
       await _messagingService.sendMessage(
         senderId: _currentUser?['id'] ?? '',
         senderName: _currentUser?['name'] ?? 'User',
+        senderEmail: _currentUser?['email'] ?? 'user@example.com',
         recipientId: _userType == 'caregiver' ? 'patient-1' : 'caregiver-1',
         recipientName: recipient,
-        content: content,
-        channel: channel,
         recipientEmail: _userType == 'caregiver' ? 'patient@example.com' : 'christina@christycares.com',
+        content: content,
+        channel: Message.channelToString(channel),
         recipientPhone: _userType == 'caregiver' ? '+13035551234' : '+13035550123',
+        senderPhone: _currentUser?['phone'],
       );
 
       await _loadData();

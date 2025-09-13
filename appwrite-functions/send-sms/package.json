@@ -1,0 +1,11 @@
+{
+  "name": "send-sms-function",
+  "version": "1.0.0",
+  "description": "Appwrite Function for sending SMS via TextBelt",
+  "main": "src/main.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/main.js"
+  },
+  "dependencies": {}
+}

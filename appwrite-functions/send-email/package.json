@@ -1,0 +1,13 @@
+{
+  "name": "send-email-function",
+  "version": "1.0.0",
+  "description": "Appwrite Function for sending emails",
+  "main": "src/main.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/main.js"
+  },
+  "dependencies": {
+    "nodemailer": "^6.9.7"
+  }
+}
