@@ -18,8 +18,7 @@ class AppwriteService {
   Future<void> initialize() async {
     client = Client()
         .setEndpoint(AppConfig.appwriteEndpoint)
-        .setProject(AppConfig.appwriteProjectId)
-        .setSelfSigned(status: true); // Only for self-signed certificates
+        .setProject(AppConfig.appwriteProjectId);
     
     account = Account(client);
     databases = Databases(client);

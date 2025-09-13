@@ -1,8 +1,7 @@
 class AppConfig {
   // Appwrite Configuration
-  // TODO: Replace with your actual Appwrite endpoint and project ID
   static const String appwriteEndpoint = 'https://cloud.appwrite.io/v1';
-  static const String appwriteProjectId = 'your-project-id';
+  static const String appwriteProjectId = 'christy-cares-app';
   
   // Database IDs
   static const String databaseId = 'caregiver-platform';

@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Caregiver Platform</string>
+	<string>Christy Cares</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -13,7 +13,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>caregiver_platform</string>
+	<string>christy_cares</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -41,13 +41,11 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-	<key>UIViewControllerBasedStatusBarAppearance</key>
-	<false/>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
-	
+
 	<!-- Permissions -->
 	<key>NSCameraUsageDescription</key>
 	<string>This app needs access to camera to take profile photos</string>
@@ -59,7 +57,7 @@
 	<string>This app needs location access to find caregivers near you</string>
 	<key>NSContactsUsageDescription</key>
 	<string>This app needs access to contacts to easily share caregiver information</string>
-	
+
 	<!-- URL Schemes for deep linking -->
 	<key>CFBundleURLTypes</key>
 	<array>
@@ -68,31 +66,19 @@
 			<string>io.appwrite.callback</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<!-- Replace [PROJECT_ID] with your actual Appwrite project ID -->
-				<string>appwrite-callback-your-project-id</string>
+				<string>appwrite-callback-christy-cares-app</string>
 			</array>
 		</dict>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>caregiver-platform</string>
+			<string>christy-cares</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>caregiverplatform</string>
+				<string>christycares</string>
 			</array>
 		</dict>
 	</array>
-	
-	<!-- LSApplicationQueriesSchemes for external apps -->
-	<key>LSApplicationQueriesSchemes</key>
-	<array>
-		<string>stripe</string>
-		<string>tel</string>
-		<string>mailto</string>
-		<string>sms</string>
-		<string>https</string>
-		<string>http</string>
-	</array>
-	
+
 	<!-- App Transport Security -->
 	<key>NSAppTransportSecurity</key>
 	<dict>
@@ -100,45 +86,32 @@
 		<false/>
 		<key>NSExceptionDomains</key>
 		<dict>
-			<!-- Allow HTTP for localhost during development -->
 			<key>localhost</key>
 			<dict>
 				<key>NSAllowsLocalNetworking</key>
 				<true/>
 			</dict>
-			<!-- Add your Appwrite domain if using HTTP -->
-			<key>your-appwrite-domain.com</key>
+			<key>cloud.appwrite.io</key>
 			<dict>
-				<key>NSAllowsArbitraryLoads</key>
-				<true/>
+				<key>NSExceptionRequiresForwardSecrecy</key>
+				<false/>
 			</dict>
 		</dict>
 	</dict>
-	
-	<!-- Background modes (if needed for chat notifications) -->
+
+	<!-- Background modes for notifications -->
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>background-processing</string>
 		<string>remote-notification</string>
 	</array>
-	
-	<!-- Prevent backup of app data -->
-	<key>NSRequiresIPhoneOSVersionEnabled</key>
-	<true/>
-	
-	<!-- Support for iPad -->
-	<key>UIRequiresFullScreen</key>
-	<false/>
-	
-	<!-- Status bar configuration -->
-	<key>UIStatusBarStyle</key>
-	<string>UIStatusBarStyleDefault</string>
-	
-	<!-- Prevent screenshots in app switcher (optional security measure) -->
-	<!-- Uncomment if you want to hide app content in app switcher -->
-	<!--
-	<key>UIApplicationExitsOnSuspend</key>
-	<true/>
-	-->
+
+	<!-- Privacy - Calendars Usage Description -->
+	<key>NSCalendarsUsageDescription</key>
+	<string>This app needs access to your calendar to schedule appointments</string>
+
+	<!-- Privacy - Reminders Usage Description -->
+	<key>NSRemindersUsageDescription</key>
+	<string>This app needs access to reminders to set appointment reminders</string>
 </dict>
 </plist>
