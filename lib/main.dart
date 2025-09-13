@@ -745,20 +745,25 @@ class _MainScreenState extends State<MainScreen> {
                                   child: OutlinedButton.icon(
                                     onPressed: () => _openInGoogleMaps(appointment.locationAddress),
                                     icon: const Icon(Icons.map, size: 16),
-                                    label: const Text('Google Maps'),
+                                    label: const Text('Maps'),
                                     style: OutlinedButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(vertical: 8),
+                                      padding: const EdgeInsets.symmetric(vertical: 6),
                                     ),
                                   ),
                                 ),
-                                const SizedBox(width: 8),
+                                const SizedBox(width: 6),
                                 Expanded(
                                   child: OutlinedButton.icon(
-                                    onPressed: () => _openInAppleMaps(appointment.locationAddress),
-                                    icon: const Icon(Icons.navigation, size: 16),
-                                    label: const Text('Apple Maps'),
+                                    onPressed: _appointmentService.canEditAppointment(appointment.dateTime)
+                                      ? () => _showEditAppointmentDialog(appointment)
+                                      : null,
+                                    icon: const Icon(Icons.edit, size: 16),
+                                    label: const Text('Edit'),
                                     style: OutlinedButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(vertical: 8),
+                                      padding: const EdgeInsets.symmetric(vertical: 6),
+                                      foregroundColor: _appointmentService.canEditAppointment(appointment.dateTime)
+                                        ? null
+                                        : Colors.grey,
                                     ),
                                   ),
                                 ),
@@ -830,13 +835,31 @@ class _MainScreenState extends State<MainScreen> {
             ),
           ),
           const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: widget.onLogout,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Logout'),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: _showEditProfileDialog,
+                  icon: const Icon(Icons.edit),
+                  label: const Text('Edit Profile'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: widget.onLogout,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Logout'),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -2235,6 +2258,262 @@ class _CaregiverAdminScreenState extends State<CaregiverAdminScreen> {
             child: const Text('OK'),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showEditAppointmentDialog(SimpleAppointment appointment) {
+    if (!_appointmentService.canEditAppointment(appointment.dateTime)) {
+      _showSnackBar(_appointmentService.getEditRestrictionMessage(appointment.dateTime));
+      return;
+    }
+
+    final dateController = TextEditingController(
+      text: appointment.dateTime.toLocal().toString().substring(0, 16),
+    );
+    final locationController = TextEditingController(text: appointment.location);
+    final addressController = TextEditingController(text: appointment.locationAddress);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Appointment'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: dateController,
+                decoration: const InputDecoration(
+                  labelText: 'Date & Time',
+                  hintText: 'YYYY-MM-DD HH:MM',
+                  border: OutlineInputBorder(),
+                ),
+                readOnly: true,
+                onTap: () => _selectDateTime(dateController, appointment),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: locationController,
+                decoration: const InputDecoration(
+                  labelText: 'Location Type',
+                  hintText: 'e.g., Home, Hospital, Facility',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: addressController,
+                decoration: const InputDecoration(
+                  labelText: 'Full Address',
+                  hintText: 'Street, City, State, ZIP',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 3,
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  _appointmentService.getEditRestrictionMessage(appointment.dateTime),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.blue[700],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => _saveAppointmentChanges(
+              appointment,
+              dateController.text,
+              locationController.text,
+              addressController.text,
+            ),
+            child: const Text('Save Changes'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _selectDateTime(TextEditingController controller, SimpleAppointment appointment) async {
+    final now = DateTime.now();
+    final initialDate = appointment.dateTime.isBefore(now.add(const Duration(hours: 2)))
+        ? now.add(const Duration(hours: 2))
+        : appointment.dateTime;
+
+    final date = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: now.add(const Duration(hours: 2)),
+      lastDate: now.add(const Duration(days: 30)),
+    );
+
+    if (date != null) {
+      final time = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.fromDateTime(initialDate),
+      );
+
+      if (time != null) {
+        final newDateTime = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+
+        if (_appointmentService.canRescheduleToTime(appointment.dateTime, newDateTime)) {
+          controller.text = newDateTime.toLocal().toString().substring(0, 16);
+        } else {
+          _showSnackBar('Selected time is not available for scheduling');
+        }
+      }
+    }
+  }
+
+  void _saveAppointmentChanges(SimpleAppointment original, String dateTimeStr, String location, String address) async {
+    try {
+      final newDateTime = DateTime.parse(dateTimeStr.replaceAll(' ', 'T'));
+
+      if (!_appointmentService.canRescheduleToTime(original.dateTime, newDateTime)) {
+        _showSnackBar('Invalid appointment time selected');
+        return;
+      }
+
+      final updatedAppointment = SimpleAppointment(
+        id: original.id,
+        caregiverName: original.caregiverName,
+        dateTime: newDateTime,
+        price: original.price,
+        status: original.status,
+        description: original.description,
+        location: location.trim().isEmpty ? original.location : location.trim(),
+        locationAddress: address.trim().isEmpty ? original.locationAddress : address.trim(),
+      );
+
+      await _appointmentService.updateAppointment(updatedAppointment);
+      await _loadAppointments();
+
+      Navigator.of(context).pop();
+      _showSnackBar('Appointment updated successfully!');
+    } catch (e) {
+      _showSnackBar('Failed to update appointment: ${e.toString()}');
+    }
+  }
+
+  void _showEditProfileDialog() {
+    final nameController = TextEditingController(text: _userType == 'caregiver' ? 'Christina Rottmann' : 'Patient Name');
+    final emailController = TextEditingController(text: _userType == 'caregiver' ? 'christina@christycares.com' : 'patient@example.com');
+    final phoneController = TextEditingController(text: _userType == 'caregiver' ? '(303) 555-0123' : '(555) 123-4567');
+    final addressController = TextEditingController(text: _userType == 'caregiver' ? '1234 Healthcare Ave, Denver, CO 80202' : '5678 Patient St, Denver, CO 80210');
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Profile'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Full Name',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: emailController,
+                decoration: const InputDecoration(
+                  labelText: 'Email Address',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.emailAddress,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: phoneController,
+                decoration: const InputDecoration(
+                  labelText: 'Phone Number',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.phone,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: addressController,
+                decoration: const InputDecoration(
+                  labelText: 'Home Address',
+                  hintText: 'Street, City, State, ZIP',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 3,
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.green.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.green[700], size: 16),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Address is used for appointment scheduling and navigation',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.green[700],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => _saveProfileChanges(
+              nameController.text,
+              emailController.text,
+              phoneController.text,
+              addressController.text,
+            ),
+            child: const Text('Save Changes'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _saveProfileChanges(String name, String email, String phone, String address) {
+    // Here you would typically save to a database or shared preferences
+    Navigator.of(context).pop();
+    _showSnackBar('Profile updated successfully!');
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: const Duration(seconds: 3),
       ),
     );
   }

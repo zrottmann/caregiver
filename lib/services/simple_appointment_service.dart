@@ -104,13 +104,71 @@ class SimpleAppointmentService {
   Future<void> cancelAppointment(String appointmentId) async {
     final appointments = await getAppointments();
     appointments.removeWhere((app) => app.id == appointmentId);
-    
+
     final prefs = await SharedPreferences.getInstance();
     final appointmentsJson = appointments
         .map((app) => jsonEncode(app.toJson()))
         .toList();
-    
+
     await prefs.setStringList(_appointmentsKey, appointmentsJson);
+  }
+
+  Future<void> updateAppointment(SimpleAppointment updatedAppointment) async {
+    final appointments = await getAppointments();
+    final index = appointments.indexWhere((app) => app.id == updatedAppointment.id);
+
+    if (index != -1) {
+      appointments[index] = updatedAppointment;
+
+      final prefs = await SharedPreferences.getInstance();
+      final appointmentsJson = appointments
+          .map((app) => jsonEncode(app.toJson()))
+          .toList();
+
+      await prefs.setStringList(_appointmentsKey, appointmentsJson);
+    }
+  }
+
+  bool canEditAppointment(DateTime appointmentDateTime) {
+    final now = DateTime.now();
+    final hoursUntilAppointment = appointmentDateTime.difference(now).inHours;
+
+    // Allow editing up to 2 hours before appointment
+    return hoursUntilAppointment >= 2;
+  }
+
+  String getEditRestrictionMessage(DateTime appointmentDateTime) {
+    final now = DateTime.now();
+    final hoursUntilAppointment = appointmentDateTime.difference(now).inHours;
+
+    if (hoursUntilAppointment < 2) {
+      return 'Cannot edit appointments less than 2 hours before scheduled time';
+    } else if (hoursUntilAppointment < 24) {
+      return 'Changes may incur fees when made less than 24 hours in advance';
+    } else {
+      return 'Free changes allowed (24+ hours notice)';
+    }
+  }
+
+  bool canRescheduleToTime(DateTime originalTime, DateTime newTime) {
+    final now = DateTime.now();
+
+    // New time must be at least 2 hours from now
+    if (newTime.difference(now).inHours < 2) {
+      return false;
+    }
+
+    // Can't reschedule to more than 30 days out
+    if (newTime.difference(now).inDays > 30) {
+      return false;
+    }
+
+    // Can't reschedule to past dates
+    if (newTime.isBefore(now)) {
+      return false;
+    }
+
+    return true;
   }
   
   String getGoogleMapsUrl(String address) {
