@@ -52,7 +52,8 @@ class EnvConfig {
     }
 
     // Required Appwrite Configuration
-    appwriteEndpoint = getEnvVar('APPWRITE_ENDPOINT') ?? 'https://cloud.appwrite.io/v1';
+    // Using NYC regional endpoint as project is hosted there
+    appwriteEndpoint = getEnvVar('APPWRITE_ENDPOINT') ?? 'https://nyc.cloud.appwrite.io/v1';
     appwriteProjectId = getEnvVar('APPWRITE_PROJECT_ID') ?? '689fd36e0032936147b1';
     appwriteApiKey = getEnvVar('APPWRITE_API_KEY') ?? '';
 
