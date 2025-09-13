@@ -6,9 +6,15 @@ import 'services/simple_auth_service.dart';
 import 'services/simple_appointment_service.dart';
 import 'services/denver_rate_service.dart';
 import 'services/appwrite_messaging_service.dart';
+import 'services/appwrite_service.dart';
 import 'models/message.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Appwrite with environment variables
+  await AppwriteService.instance.initialize();
+
   runApp(const CaregiverPlatformApp());
 }
 

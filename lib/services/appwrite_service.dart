@@ -1,6 +1,6 @@
 import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/models.dart' as models;
-import '../config/app_config.dart';
+import '../config/env_config.dart';
 
 class AppwriteService {
   static final AppwriteService _instance = AppwriteService._internal();
@@ -17,9 +17,16 @@ class AppwriteService {
   late Functions functions;
 
   Future<void> initialize() async {
+    // Load environment variables
+    await EnvConfig.init();
+
+    if (!EnvConfig.isConfigured) {
+      throw Exception('Appwrite not properly configured. Please check your .env file.');
+    }
+
     client = Client()
-        .setEndpoint(AppConfig.appwriteEndpoint)
-        .setProject(AppConfig.appwriteProjectId);
+        .setEndpoint(EnvConfig.appwriteEndpoint)
+        .setProject(EnvConfig.appwriteProjectId);
 
     account = Account(client);
     databases = Databases(client);

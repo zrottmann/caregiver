@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/models.dart' as models;
 import 'appwrite_service.dart';
-import '../config/app_config.dart';
+import '../config/env_config.dart';
 
 /// Fully integrated Appwrite messaging service
 /// Everything runs on Appwrite - no external dependencies
@@ -13,10 +13,10 @@ class AppwriteMessagingService {
 
   final AppwriteService _appwrite = AppwriteService.instance;
 
-  // Collection IDs
-  static const String messagesCollection = 'messages';
-  static const String conversationsCollection = 'conversations';
-  static const String notificationsCollection = 'notifications';
+  // Collection IDs from environment
+  String get messagesCollection => EnvConfig.messagesCollectionId;
+  String get conversationsCollection => 'conversations'; // Add to env if needed
+  String get notificationsCollection => 'notifications'; // Add to env if needed
 
   /// Initialize messaging collections in Appwrite
   Future<void> initializeCollections() async {
@@ -78,7 +78,7 @@ class AppwriteMessagingService {
     try {
       // Create message document
       final message = await _appwrite.databases.createDocument(
-        databaseId: AppConfig.databaseId,
+        databaseId: EnvConfig.databaseId,
         collectionId: messagesCollection,
         documentId: ID.unique(),
         data: {
@@ -137,7 +137,7 @@ class AppwriteMessagingService {
   Future<List<models.Document>> getMessages(String userId, {int limit = 50}) async {
     try {
       final response = await _appwrite.databases.listDocuments(
-        databaseId: AppConfig.databaseId,
+        databaseId: EnvConfig.databaseId,
         collectionId: messagesCollection,
         queries: [
           Query.equal('recipientId', userId),
@@ -160,7 +160,7 @@ class AppwriteMessagingService {
   }) async {
     try {
       final response = await _appwrite.databases.listDocuments(
-        databaseId: AppConfig.databaseId,
+        databaseId: EnvConfig.databaseId,
         collectionId: messagesCollection,
         queries: [
           Query.or([
@@ -188,7 +188,7 @@ class AppwriteMessagingService {
   Future<void> markAsRead(String messageId) async {
     try {
       await _appwrite.databases.updateDocument(
-        databaseId: AppConfig.databaseId,
+        databaseId: EnvConfig.databaseId,
         collectionId: messagesCollection,
         documentId: messageId,
         data: {
@@ -206,7 +206,7 @@ class AppwriteMessagingService {
   Future<int> getUnreadCount(String userId) async {
     try {
       final response = await _appwrite.databases.listDocuments(
-        databaseId: AppConfig.databaseId,
+        databaseId: EnvConfig.databaseId,
         collectionId: messagesCollection,
         queries: [
           Query.equal('recipientId', userId),
@@ -224,7 +224,7 @@ class AppwriteMessagingService {
   Future<List<models.Document>> getConversations(String userId) async {
     try {
       final response = await _appwrite.databases.listDocuments(
-        databaseId: AppConfig.databaseId,
+        databaseId: EnvConfig.databaseId,
         collectionId: conversationsCollection,
         queries: [
           Query.or([
@@ -252,7 +252,7 @@ class AppwriteMessagingService {
     try {
       // Check if conversation exists
       final existing = await _appwrite.databases.listDocuments(
-        databaseId: AppConfig.databaseId,
+        databaseId: EnvConfig.databaseId,
         collectionId: conversationsCollection,
         queries: [
           Query.or([
@@ -274,7 +274,7 @@ class AppwriteMessagingService {
         final isParticipant1 = doc.data['participant1Id'] == senderId;
 
         await _appwrite.databases.updateDocument(
-          databaseId: AppConfig.databaseId,
+          databaseId: EnvConfig.databaseId,
           collectionId: conversationsCollection,
           documentId: doc.$id,
           data: {
@@ -287,7 +287,7 @@ class AppwriteMessagingService {
       } else {
         // Create new conversation
         await _appwrite.databases.createDocument(
-          databaseId: AppConfig.databaseId,
+          databaseId: EnvConfig.databaseId,
           collectionId: conversationsCollection,
           documentId: ID.unique(),
           data: {
@@ -315,7 +315,7 @@ class AppwriteMessagingService {
       // Function code would use Appwrite's built-in email service
 
       await _appwrite.functions.createExecution(
-        functionId: 'sendEmailNotification', // Create this function in Appwrite Console
+        functionId: EnvConfig.emailFunctionId
         body: jsonEncode({
           'to': message.data['recipientEmail'],
           'from': message.data['senderEmail'],
@@ -336,7 +336,7 @@ class AppwriteMessagingService {
       // Function can integrate with TextBelt or other open-source SMS providers
 
       await _appwrite.functions.createExecution(
-        functionId: 'sendSmsNotification', // Create this function in Appwrite Console
+        functionId: EnvConfig.smsFunctionId
         body: jsonEncode({
           'to': message.data['recipientPhone'],
           'from': message.data['senderName'],
@@ -357,7 +357,7 @@ class AppwriteMessagingService {
     try {
       // Use Appwrite's push notification feature
       await _appwrite.databases.createDocument(
-        databaseId: AppConfig.databaseId,
+        databaseId: EnvConfig.databaseId,
         collectionId: notificationsCollection,
         documentId: ID.unique(),
         data: {
@@ -377,7 +377,7 @@ class AppwriteMessagingService {
   /// Subscribe to real-time message updates
   RealtimeSubscription subscribeToMessages(String userId, Function(models.Document) onMessage) {
     return _appwrite.realtime.subscribe([
-      'databases.${AppConfig.databaseId}.collections.$messagesCollection.documents'
+      'databases.${EnvConfig.databaseId}.collections.$messagesCollection.documents'
     ]).stream.listen((response) {
       if (response.events.contains('databases.*.collections.*.documents.*.create')) {
         final message = models.Document.fromMap(response.payload);
@@ -392,7 +392,7 @@ class AppwriteMessagingService {
   Future<void> deleteMessage(String messageId) async {
     try {
       await _appwrite.databases.deleteDocument(
-        databaseId: AppConfig.databaseId,
+        databaseId: EnvConfig.databaseId,
         collectionId: messagesCollection,
         documentId: messageId,
       );
@@ -405,7 +405,7 @@ class AppwriteMessagingService {
   Future<List<models.Document>> searchMessages(String userId, String searchTerm) async {
     try {
       final response = await _appwrite.databases.listDocuments(
-        databaseId: AppConfig.databaseId,
+        databaseId: EnvConfig.databaseId,
         collectionId: messagesCollection,
         queries: [
           Query.or([
