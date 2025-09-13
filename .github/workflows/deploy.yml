@@ -1,0 +1,53 @@
+name: Fast Deploy
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  web-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          cache: true
+          cache-key: flutter-${{ runner.os }}-${{ hashFiles('**/pubspec.lock') }}
+          cache-path: ${{ runner.temp }}/flutter
+
+      - name: Cache pub dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            ~/.dart
+          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Build web (optimized)
+        run: |
+          flutter build web \
+            --release \
+            --web-renderer canvaskit \
+            --dart-define=FLUTTER_WEB_USE_SKIA=true \
+            --source-maps \
+            --tree-shake-icons \
+            --split-per-abi
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        if: github.ref == 'refs/heads/main'
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./build/web
+          cname: caregiver.your-domain.com
