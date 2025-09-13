@@ -38,8 +38,8 @@ class EnvConfig {
     try {
       await dotenv.load(fileName: '.env');
     } catch (e) {
-      // .env file might not exist in web deployment, use environment variables or defaults
-      print('Warning: .env file not found, using defaults: $e');
+      // .env file might not exist in web deployment, use hardcoded defaults for web
+      print('Warning: .env file not found, using hardcoded defaults for web deployment: $e');
     }
 
     // Safe access to environment variables
