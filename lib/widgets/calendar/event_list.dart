@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/calendar_event.dart';
-import '../../models/appointment.dart';
 
 class EventList extends ConsumerWidget {
   final List<CalendarEvent> events;

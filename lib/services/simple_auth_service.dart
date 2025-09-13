@@ -10,11 +10,30 @@ class SimpleAuthService {
     
     // Simple mock authentication - accept any email/password combo
     if (email.isNotEmpty && password.isNotEmpty) {
+      // Detect caregiver emails
+      String userType = "patient";
+      final emailLower = email.toLowerCase();
+      
+      // Check for caregiver email patterns
+      if (emailLower.contains("christina") ||
+          emailLower.contains("christy") ||
+          emailLower.contains("caregiver") ||
+          emailLower.contains("admin") ||
+          emailLower.contains("nurse") ||
+          emailLower.contains("staff") ||
+          emailLower.contains("care") ||
+          emailLower.endsWith("@christycares.com") ||
+          emailLower.startsWith("admin@") ||
+          emailLower.startsWith("caregiver@") ||
+          emailLower.startsWith("nurse@")) {
+        userType = "caregiver";
+      }
+      
       final userData = {
         'id': '1',
         'email': email,
         'name': email.split('@')[0],
-        'userType': 'patient', // or 'caregiver'
+        'userType': userType,
       };
       
       final prefs = await SharedPreferences.getInstance();

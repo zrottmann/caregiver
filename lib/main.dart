@@ -955,7 +955,7 @@ class _BookingScreenState extends State<BookingScreen> {
   DateTime _selectedDay = DateTime.now();
   DateTime _focusedDay = DateTime.now();
   TimeOfDay _selectedTime = TimeOfDay.now();
-  String _selectedCaregiver = 'Sarah Johnson';
+  String _selectedCaregiver = 'Sarah Johnson, RN';
   String _selectedService = 'Personal Care';
   String _selectedLocation = "Patient's Home";
   final _descriptionController = TextEditingController();
