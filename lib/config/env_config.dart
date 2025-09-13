@@ -42,38 +42,47 @@ class EnvConfig {
       print('Warning: .env file not found, using defaults: $e');
     }
 
+    // Safe access to environment variables
+    String? getEnvVar(String key) {
+      try {
+        return dotenv.env[key];
+      } catch (e) {
+        return null;
+      }
+    }
+
     // Required Appwrite Configuration
-    appwriteEndpoint = dotenv.env['APPWRITE_ENDPOINT'] ?? 'https://cloud.appwrite.io/v1';
-    appwriteProjectId = dotenv.env['APPWRITE_PROJECT_ID'] ?? '689fd36e0032936147b1';
-    appwriteApiKey = dotenv.env['APPWRITE_API_KEY'] ?? '';
+    appwriteEndpoint = getEnvVar('APPWRITE_ENDPOINT') ?? 'https://cloud.appwrite.io/v1';
+    appwriteProjectId = getEnvVar('APPWRITE_PROJECT_ID') ?? '689fd36e0032936147b1';
+    appwriteApiKey = getEnvVar('APPWRITE_API_KEY') ?? '';
 
     // Database Configuration
-    databaseId = dotenv.env['APPWRITE_DATABASE_ID'] ?? 'christy-cares-db';
-    appointmentsCollectionId = dotenv.env['APPWRITE_APPOINTMENTS_COLLECTION_ID'] ?? 'appointments';
-    patientsCollectionId = dotenv.env['APPWRITE_PATIENTS_COLLECTION_ID'] ?? 'patients';
-    caregiversCollectionId = dotenv.env['APPWRITE_CAREGIVERS_COLLECTION_ID'] ?? 'caregivers';
-    messagesCollectionId = dotenv.env['APPWRITE_MESSAGES_COLLECTION_ID'] ?? 'messages';
+    databaseId = getEnvVar('APPWRITE_DATABASE_ID') ?? 'christy-cares-db';
+    appointmentsCollectionId = getEnvVar('APPWRITE_APPOINTMENTS_COLLECTION_ID') ?? 'appointments';
+    patientsCollectionId = getEnvVar('APPWRITE_PATIENTS_COLLECTION_ID') ?? 'patients';
+    caregiversCollectionId = getEnvVar('APPWRITE_CAREGIVERS_COLLECTION_ID') ?? 'caregivers';
+    messagesCollectionId = getEnvVar('APPWRITE_MESSAGES_COLLECTION_ID') ?? 'messages';
 
     // Function Configuration
-    emailFunctionId = dotenv.env['APPWRITE_EMAIL_FUNCTION_ID'] ?? '68c5c9dc0036c5a66172';
-    smsFunctionId = dotenv.env['APPWRITE_SMS_FUNCTION_ID'] ?? '';
-    pushFunctionId = dotenv.env['APPWRITE_PUSH_FUNCTION_ID'] ?? '';
+    emailFunctionId = getEnvVar('APPWRITE_EMAIL_FUNCTION_ID') ?? '68c5c9dc0036c5a66172';
+    smsFunctionId = getEnvVar('APPWRITE_SMS_FUNCTION_ID') ?? '';
+    pushFunctionId = getEnvVar('APPWRITE_PUSH_FUNCTION_ID') ?? '';
 
     // Storage Configuration
-    bucketId = dotenv.env['APPWRITE_BUCKET_ID'] ?? '';
+    bucketId = getEnvVar('APPWRITE_BUCKET_ID') ?? '';
 
     // Email Configuration
-    emailFromAddress = dotenv.env['EMAIL_FROM_ADDRESS'] ?? 'noreply@christy-cares.com';
-    emailFromName = dotenv.env['EMAIL_FROM_NAME'] ?? 'Christy Cares';
+    emailFromAddress = getEnvVar('EMAIL_FROM_ADDRESS') ?? 'noreply@christy-cares.com';
+    emailFromName = getEnvVar('EMAIL_FROM_NAME') ?? 'Christy Cares';
 
     // Optional Configurations
-    twilioAccountSid = dotenv.env['TWILIO_ACCOUNT_SID'];
-    twilioAuthToken = dotenv.env['TWILIO_AUTH_TOKEN'];
-    twilioPhoneNumber = dotenv.env['TWILIO_PHONE_NUMBER'];
+    twilioAccountSid = getEnvVar('TWILIO_ACCOUNT_SID');
+    twilioAuthToken = getEnvVar('TWILIO_AUTH_TOKEN');
+    twilioPhoneNumber = getEnvVar('TWILIO_PHONE_NUMBER');
 
-    fcmServerKey = dotenv.env['FCM_SERVER_KEY'];
-    apnsKeyId = dotenv.env['APNS_KEY_ID'];
-    apnsTeamId = dotenv.env['APNS_TEAM_ID'];
+    fcmServerKey = getEnvVar('FCM_SERVER_KEY');
+    apnsKeyId = getEnvVar('APNS_KEY_ID');
+    apnsTeamId = getEnvVar('APNS_TEAM_ID');
   }
 
   static bool get isConfigured {
