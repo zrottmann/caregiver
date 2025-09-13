@@ -1758,22 +1758,105 @@ class _CaregiverAdminScreenState extends State<CaregiverAdminScreen> {
 
   Widget _buildRatesScreen() {
     final profile = _caregiverProfile!;
-    
+
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Your Current Rates',
+            'Dynamic Pricing System',
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           Text(
-            'Based on Denver, CO market rates with your ${profile.bookingPercentage.toStringAsFixed(1)}% booking rate',
+            'Your rates automatically adjust based on performance metrics',
             style: TextStyle(color: Colors.grey[600]),
           ),
+          const SizedBox(height: 16),
+
+          // Explanation Card
+          Card(
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        color: Theme.of(context).colorScheme.primary,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'How Dynamic Pricing Works',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    '• Base rates are set using Denver, CO market research',
+                    style: TextStyle(color: Colors.grey[700]),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '• Your booking rate (${profile.bookingPercentage.toStringAsFixed(1)}%) affects pricing multiplier',
+                    style: TextStyle(color: Colors.grey[700]),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '• Higher ratings (${profile.rating}/5.0) earn premium rates',
+                    style: TextStyle(color: Colors.grey[700]),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '• Experience level (${profile.credentials}) adds qualification bonus',
+                    style: TextStyle(color: Colors.grey[700]),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: profile.bookingPercentage >= 80
+                        ? Colors.green.withValues(alpha: 0.1)
+                        : profile.bookingPercentage >= 60
+                          ? Colors.orange.withValues(alpha: 0.1)
+                          : Colors.red.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      profile.bookingPercentage >= 80
+                        ? '✅ Excellent performance - earning premium rates!'
+                        : profile.bookingPercentage >= 60
+                          ? '⚠️ Good performance - room for improvement'
+                          : '⚡ Focus on increasing your booking rate for higher pay',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: profile.bookingPercentage >= 80
+                          ? Colors.green[700]
+                          : profile.bookingPercentage >= 60
+                            ? Colors.orange[700]
+                            : Colors.red[700],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
           const SizedBox(height: 20),
+
+          const Text(
+            'Service Rates',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+
           Expanded(
             child: ListView(
               children: DenverRateService.denverBaseRates.entries.map((entry) {
@@ -1783,41 +1866,112 @@ class _CaregiverAdminScreenState extends State<CaregiverAdminScreen> {
                   credentials: profile.credentials,
                   rating: profile.rating,
                 );
-                
+
+                final multiplier = dynamicRate / entry.value;
+                final bonusPercent = ((multiplier - 1) * 100);
+
                 return Card(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          entry.key,
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                entry.key,
+                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            if (bonusPercent > 0)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.green.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+                                ),
+                                child: Text(
+                                  '+${bonusPercent.toStringAsFixed(0)}%',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.green[700],
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 12),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              'Base Rate: \$${entry.value.toStringAsFixed(2)}/hr',
-                              style: TextStyle(color: Colors.grey[600]),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Market Base',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[600],
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                Text(
+                                  '\$${entry.value.toStringAsFixed(2)}/hr',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey[700],
+                                  ),
+                                ),
+                              ],
                             ),
-                            Text(
-                              'Your Rate: \$${dynamicRate.toStringAsFixed(2)}/hr',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
+                            const Icon(Icons.arrow_forward, color: Colors.grey, size: 16),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  'Your Rate',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Theme.of(context).colorScheme.primary,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                Text(
+                                  '\$${dynamicRate.toStringAsFixed(2)}/hr',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Theme.of(context).colorScheme.primary,
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 8),
                         LinearProgressIndicator(
-                          value: (dynamicRate - entry.value) / entry.value,
+                          value: bonusPercent > 0 ? (bonusPercent / 50).clamp(0.0, 1.0) : 0.1,
                           backgroundColor: Colors.grey[300],
                           valueColor: AlwaysStoppedAnimation<Color>(
-                            Theme.of(context).colorScheme.primary,
+                            bonusPercent >= 20
+                              ? Colors.green
+                              : bonusPercent >= 10
+                                ? Colors.orange
+                                : Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          bonusPercent > 0
+                            ? 'Earning ${bonusPercent.toStringAsFixed(0)}% above market rate'
+                            : 'At market rate - improve metrics for bonuses',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: bonusPercent > 0 ? Colors.green[700] : Colors.grey[600],
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
@@ -1876,14 +2030,99 @@ class _CaregiverAdminScreenState extends State<CaregiverAdminScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Rate Multipliers',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.trending_up,
+                        color: Theme.of(context).colorScheme.primary,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Rate Multipliers Breakdown',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 12),
-                  _buildMultiplierRow('Booking Rate Bonus', DenverRateService.getBookingMultiplier(profile.bookingPercentage)),
-                  _buildMultiplierRow('Experience Bonus (${profile.credentials})', DenverRateService.getExperienceMultiplier(profile.credentials)),
-                  _buildMultiplierRow('Rating Bonus', profile.rating >= 4.8 ? 1.1 : (profile.rating >= 4.5 ? 1.05 : 1.0)),
+                  const SizedBox(height: 8),
+                  Text(
+                    'How your performance metrics affect your hourly rates',
+                    style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                  ),
+                  const SizedBox(height: 16),
+
+                  _buildEnhancedMultiplierRow(
+                    'Booking Rate Bonus',
+                    DenverRateService.getBookingMultiplier(profile.bookingPercentage),
+                    'Based on your ${profile.bookingPercentage.toStringAsFixed(1)}% booking rate',
+                    profile.bookingPercentage >= 80
+                      ? 'Excellent! Keep accepting bookings to maintain this bonus'
+                      : profile.bookingPercentage >= 60
+                        ? 'Good performance. Accept more bookings for higher rates'
+                        : 'Focus on increasing your booking acceptance rate',
+                    Icons.event_available,
+                  ),
+
+                  _buildEnhancedMultiplierRow(
+                    'Experience Bonus',
+                    DenverRateService.getExperienceMultiplier(profile.credentials),
+                    'Your qualification level: ${profile.credentials}',
+                    profile.credentials == 'RN'
+                      ? 'Registered Nurse - highest qualification bonus'
+                      : profile.credentials == 'CNA'
+                        ? 'Certified Nursing Assistant - good qualification bonus'
+                        : 'Consider additional certifications to increase this multiplier',
+                    Icons.school,
+                  ),
+
+                  _buildEnhancedMultiplierRow(
+                    'Rating Bonus',
+                    profile.rating >= 4.8 ? 1.1 : (profile.rating >= 4.5 ? 1.05 : 1.0),
+                    'Patient feedback rating: ${profile.rating}/5.0',
+                    profile.rating >= 4.8
+                      ? 'Outstanding! Patients love your care'
+                      : profile.rating >= 4.5
+                        ? 'Good rating. Continue providing excellent care'
+                        : 'Focus on patient satisfaction to increase this bonus',
+                    Icons.star,
+                  ),
+
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.blue.withValues(alpha: 0.2)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.calculate, color: Colors.blue[700], size: 16),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Total Rate Calculation',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue[700],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Base Rate × Booking Multiplier × Experience Multiplier × Rating Multiplier = Your Final Rate',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.blue[700],
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -1905,6 +2144,76 @@ class _CaregiverAdminScreenState extends State<CaregiverAdminScreen> {
             style: TextStyle(
               fontWeight: FontWeight.bold,
               color: multiplier > 1.0 ? Colors.green : Colors.grey[600],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEnhancedMultiplierRow(String label, double multiplier, String description, String advice, IconData icon) {
+    final isBonus = multiplier > 1.0;
+    final bonusPercent = ((multiplier - 1) * 100);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isBonus ? Colors.green.withValues(alpha: 0.05) : Colors.grey.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isBonus ? Colors.green.withValues(alpha: 0.2) : Colors.grey.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                icon,
+                size: 18,
+                color: isBonus ? Colors.green[700] : Colors.grey[600],
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  label,
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: isBonus ? Colors.green.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  isBonus ? '+${bonusPercent.toStringAsFixed(0)}%' : '${(multiplier * 100).toStringAsFixed(0)}%',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: isBonus ? Colors.green[700] : Colors.grey[600],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            description,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey[600],
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            advice,
+            style: TextStyle(
+              fontSize: 11,
+              color: isBonus ? Colors.green[700] : Colors.grey[700],
+              fontStyle: FontStyle.italic,
             ),
           ),
         ],
