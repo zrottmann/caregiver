@@ -4,26 +4,99 @@ import '../models/availability_slot.dart';
 import '../models/calendar_event.dart';
 import '../models/reminder.dart';
 import '../services/appointment_service.dart';
+import '../services/simple_appointment_service.dart';
 import 'auth_provider.dart';
 
-// Service provider
+// Service providers
 final appointmentServiceProvider = Provider<AppointmentService>((ref) {
   return AppointmentService();
 });
 
+final simpleAppointmentServiceProvider = Provider<SimpleAppointmentService>((ref) {
+  return SimpleAppointmentService();
+});
+
+// Helper function to convert SimpleAppointment to Appointment
+Appointment _convertSimpleToAppointment(SimpleAppointment simple) {
+  // Convert status string to enum
+  AppointmentStatus status;
+  switch (simple.status.toLowerCase()) {
+    case 'scheduled':
+      status = AppointmentStatus.scheduled;
+      break;
+    case 'confirmed':
+      status = AppointmentStatus.confirmed;
+      break;
+    case 'completed':
+      status = AppointmentStatus.completed;
+      break;
+    case 'cancelled':
+      status = AppointmentStatus.cancelled;
+      break;
+    default:
+      status = AppointmentStatus.scheduled;
+  }
+
+  return Appointment(
+    id: simple.id,
+    patientId: 'patient-1', // Mock patient ID since SimpleAppointment doesn't have it
+    caregiverId: 'caregiver-1', // Mock caregiver ID
+    patientName: simple.patientName ?? 'Patient',
+    caregiverName: simple.caregiverName,
+    startTime: simple.dateTime,
+    endTime: simple.dateTime.add(const Duration(hours: 1)), // Default 1 hour duration
+    status: status,
+    type: AppointmentType.oneTime,
+    serviceType: 'General Care', // Default service type
+    description: simple.description,
+    location: simple.location,
+    locationAddress: simple.locationAddress,
+    cost: simple.price,
+    notes: [],
+    createdAt: DateTime.now(),
+    updatedAt: DateTime.now(),
+  );
+}
+
 // Appointment providers
 final appointmentsProvider = FutureProvider.autoDispose.family<List<Appointment>, AppointmentFilters?>((ref, filters) async {
-  final service = ref.read(appointmentServiceProvider);
-  final currentUser = ref.read(currentUserProfileProvider);
-  
-  return service.getAppointments(
-    userId: filters?.userId ?? currentUser?.id,
-    caregiverId: filters?.caregiverId,
-    patientId: filters?.patientId,
-    startDate: filters?.startDate,
-    endDate: filters?.endDate,
-    statuses: filters?.statuses,
-  );
+  final simpleService = ref.read(simpleAppointmentServiceProvider);
+
+  // Get appointments from SimpleAppointmentService
+  final simpleAppointments = await simpleService.getAppointments();
+
+  // Convert to Appointment objects
+  List<Appointment> appointments = simpleAppointments
+      .map((simple) => _convertSimpleToAppointment(simple))
+      .toList();
+
+  // Apply filters if provided
+  if (filters != null) {
+    if (filters.startDate != null) {
+      appointments = appointments.where((app) =>
+        app.startTime.isAfter(filters.startDate!) ||
+        app.startTime.isAtSameMomentAs(filters.startDate!)
+      ).toList();
+    }
+
+    if (filters.endDate != null) {
+      appointments = appointments.where((app) =>
+        app.startTime.isBefore(filters.endDate!) ||
+        app.startTime.isAtSameMomentAs(filters.endDate!)
+      ).toList();
+    }
+
+    if (filters.statuses != null && filters.statuses!.isNotEmpty) {
+      appointments = appointments.where((app) =>
+        filters.statuses!.contains(app.status)
+      ).toList();
+    }
+  }
+
+  // Sort by date (newest first)
+  appointments.sort((a, b) => b.startTime.compareTo(a.startTime));
+
+  return appointments;
 });
 
 final appointmentProvider = FutureProvider.autoDispose.family<Appointment, String>((ref, appointmentId) async {
@@ -32,37 +105,59 @@ final appointmentProvider = FutureProvider.autoDispose.family<Appointment, Strin
 });
 
 final upcomingAppointmentsProvider = FutureProvider.autoDispose<List<Appointment>>((ref) async {
-  final service = ref.read(appointmentServiceProvider);
+  final simpleService = ref.read(simpleAppointmentServiceProvider);
   final currentUser = ref.read(currentUserProfileProvider);
-  
+
   if (currentUser == null) return [];
-  
+
   final now = DateTime.now();
   final nextWeek = now.add(const Duration(days: 7));
-  
-  return service.getAppointments(
-    userId: currentUser.id,
-    startDate: now,
-    endDate: nextWeek,
-    statuses: [AppointmentStatus.scheduled, AppointmentStatus.confirmed],
-  );
+
+  // Get appointments from SimpleAppointmentService
+  final simpleAppointments = await simpleService.getAppointments();
+
+  // Convert and filter
+  final appointments = simpleAppointments
+      .map((simple) => _convertSimpleToAppointment(simple))
+      .where((app) =>
+        app.startTime.isAfter(now) &&
+        app.startTime.isBefore(nextWeek) &&
+        (app.status == AppointmentStatus.scheduled || app.status == AppointmentStatus.confirmed)
+      )
+      .toList();
+
+  // Sort by date (soonest first)
+  appointments.sort((a, b) => a.startTime.compareTo(b.startTime));
+
+  return appointments;
 });
 
 final todayAppointmentsProvider = FutureProvider.autoDispose<List<Appointment>>((ref) async {
-  final service = ref.read(appointmentServiceProvider);
+  final simpleService = ref.read(simpleAppointmentServiceProvider);
   final currentUser = ref.read(currentUserProfileProvider);
-  
+
   if (currentUser == null) return [];
-  
+
   final now = DateTime.now();
   final today = DateTime(now.year, now.month, now.day);
   final tomorrow = today.add(const Duration(days: 1));
-  
-  return service.getAppointments(
-    userId: currentUser.id,
-    startDate: today,
-    endDate: tomorrow,
-  );
+
+  // Get appointments from SimpleAppointmentService
+  final simpleAppointments = await simpleService.getAppointments();
+
+  // Convert and filter for today
+  final appointments = simpleAppointments
+      .map((simple) => _convertSimpleToAppointment(simple))
+      .where((app) =>
+        app.startTime.isAfter(today) &&
+        app.startTime.isBefore(tomorrow)
+      )
+      .toList();
+
+  // Sort by time
+  appointments.sort((a, b) => a.startTime.compareTo(b.startTime));
+
+  return appointments;
 });
 
 // Appointment management notifier
