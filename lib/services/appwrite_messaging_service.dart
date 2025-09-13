@@ -3,6 +3,7 @@ import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/models.dart' as models;
 import 'appwrite_service.dart';
 import '../config/env_config.dart';
+import '../models/message.dart';
 
 /// Fully integrated Appwrite messaging service
 /// Everything runs on Appwrite - no external dependencies
@@ -460,13 +461,7 @@ class AppwriteMessagingService {
         ],
       );
 
-      return response.documents.map((doc) => Message(
-        id: doc.\$id,
-        senderId: doc.data['senderId'] ?? '',
-        senderName: doc.data['senderName'] ?? 'Unknown',
-        content: doc.data['content'] ?? '',
-        timestamp: DateTime.parse(doc.data['timestamp'] ?? DateTime.now().toIso8601String()),
-      )).toList();
+      return response.documents.map((doc) => Message.fromDocument(doc)).toList();
     } catch (e) {
       throw Exception('Failed to get messages: $e');
     }
