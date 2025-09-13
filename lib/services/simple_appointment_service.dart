@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'appwrite_service.dart';
+import '../config/env_config.dart';
 
 class SimpleAppointment {
   final String id;
@@ -11,6 +13,8 @@ class SimpleAppointment {
   final String description;
   final String location;
   final String locationAddress;
+  final String? patientEmail;
+  final String? patientName;
   
   SimpleAppointment({
     required this.id,
@@ -21,6 +25,8 @@ class SimpleAppointment {
     required this.description,
     required this.location,
     required this.locationAddress,
+    this.patientEmail,
+    this.patientName,
   });
   
   Map<String, dynamic> toJson() {
@@ -33,6 +39,8 @@ class SimpleAppointment {
       'description': description,
       'location': location,
       'locationAddress': locationAddress,
+      'patientEmail': patientEmail,
+      'patientName': patientName,
     };
   }
   
@@ -46,6 +54,8 @@ class SimpleAppointment {
       description: json['description'],
       location: json['location'] ?? 'Home',
       locationAddress: json['locationAddress'] ?? '123 Main St, City, State',
+      patientEmail: json['patientEmail'],
+      patientName: json['patientName'],
     );
   }
 }
@@ -65,13 +75,23 @@ class SimpleAppointmentService {
   Future<void> bookAppointment(SimpleAppointment appointment) async {
     final appointments = await getAppointments();
     appointments.add(appointment);
-    
+
     final prefs = await SharedPreferences.getInstance();
     final appointmentsJson = appointments
         .map((app) => jsonEncode(app.toJson()))
         .toList();
-    
+
     await prefs.setStringList(_appointmentsKey, appointmentsJson);
+
+    // Send confirmation email if patient email is provided
+    if (appointment.patientEmail != null && appointment.patientEmail!.isNotEmpty) {
+      try {
+        await _sendAppointmentConfirmationEmail(appointment);
+      } catch (e) {
+        print('Failed to send confirmation email: $e');
+        // Don't throw error - appointment booking should still succeed
+      }
+    }
   }
   
   double calculateCancellationFee(DateTime appointmentDateTime) {
@@ -179,5 +199,143 @@ class SimpleAppointmentService {
   String getAppleMapsUrl(String address) {
     final encodedAddress = Uri.encodeComponent(address);
     return 'http://maps.apple.com/?q=$encodedAddress';
+  }
+
+  /// Send appointment confirmation email using Appwrite function
+  Future<void> _sendAppointmentConfirmationEmail(SimpleAppointment appointment) async {
+    try {
+      // Double-check email is not null before proceeding
+      if (appointment.patientEmail == null || appointment.patientEmail!.isEmpty) {
+        print('⚠️ Cannot send email: patient email is null or empty');
+        return;
+      }
+
+      // Ensure Appwrite service is initialized
+      await AppwriteService.instance.initialize();
+
+      final patientName = appointment.patientName ?? 'Valued Patient';
+      final appointmentDate = _formatAppointmentDate(appointment.dateTime);
+      final appointmentTime = _formatAppointmentTime(appointment.dateTime);
+
+      final subject = 'Appointment Confirmation - ${appointment.caregiverName}';
+      final content = _buildConfirmationEmailContent(
+        patientName: patientName,
+        caregiverName: appointment.caregiverName,
+        appointmentDate: appointmentDate,
+        appointmentTime: appointmentTime,
+        location: appointment.location,
+        locationAddress: appointment.locationAddress,
+        description: appointment.description,
+        price: appointment.price,
+        appointmentId: appointment.id,
+      );
+
+      final payload = {
+        'to': appointment.patientEmail!,
+        'subject': subject,
+        'content': content,
+      };
+
+      print('Sending confirmation email to: ${appointment.patientEmail}');
+
+      final response = await AppwriteService.instance.functions.createExecution(
+        functionId: EnvConfig.emailFunctionId,
+        body: jsonEncode(payload),
+      );
+
+      print('Email function response: ${response.responseBody}');
+
+      if (response.status == 'completed') {
+        print('✅ Appointment confirmation email sent successfully');
+      } else {
+        print('⚠️ Email function execution status: ${response.status}');
+      }
+
+    } catch (e) {
+      print('❌ Failed to send appointment confirmation email: $e');
+      rethrow;
+    }
+  }
+
+  String _formatAppointmentDate(DateTime dateTime) {
+    final months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    final weekdays = [
+      'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
+    ];
+
+    return '${weekdays[dateTime.weekday - 1]}, ${months[dateTime.month - 1]} ${dateTime.day}, ${dateTime.year}';
+  }
+
+  String _formatAppointmentTime(DateTime dateTime) {
+    final hour = dateTime.hour == 0 ? 12 : (dateTime.hour > 12 ? dateTime.hour - 12 : dateTime.hour);
+    final minute = dateTime.minute.toString().padLeft(2, '0');
+    final period = dateTime.hour >= 12 ? 'PM' : 'AM';
+    return '$hour:$minute $period';
+  }
+
+  String _buildConfirmationEmailContent({
+    required String patientName,
+    required String caregiverName,
+    required String appointmentDate,
+    required String appointmentTime,
+    required String location,
+    required String locationAddress,
+    required String description,
+    required double price,
+    required String appointmentId,
+  }) {
+    return '''Dear $patientName,
+
+Your appointment has been successfully scheduled with Christy Cares!
+
+📅 APPOINTMENT DETAILS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Caregiver: $caregiverName
+Date: $appointmentDate
+Time: $appointmentTime
+Location: $location
+Address: $locationAddress
+
+Service Description: $description
+Total Cost: \$${price.toStringAsFixed(2)}
+
+Appointment ID: $appointmentId
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 IMPORTANT REMINDERS:
+
+• Please arrive 10-15 minutes early
+• Bring a valid photo ID
+• Have your insurance information ready
+• Inform us of any changes to your health condition
+
+🔄 NEED TO RESCHEDULE OR CANCEL?
+Please contact us at least 24 hours in advance to avoid cancellation fees.
+
+CANCELLATION POLICY:
+• 48+ hours notice: Free cancellation
+• 24-48 hours notice: \$10 fee
+• 4-24 hours notice: \$25 fee
+• Less than 4 hours: \$50 fee
+
+📞 CONTACT INFORMATION:
+Phone: (410) 555-CARE (2273)
+Email: support@christy-cares.com
+Website: www.christy-cares.com
+
+We're committed to providing you with exceptional personalized care. If you have any questions or concerns before your appointment, please don't hesitate to reach out.
+
+Thank you for choosing Christy Cares for your healthcare needs!
+
+Warm regards,
+The Christy Cares Team
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+This is an automated confirmation email. Please do not reply directly to this message.''';
   }
 }

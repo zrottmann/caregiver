@@ -8,6 +8,7 @@ import 'services/denver_rate_service.dart';
 import 'services/appwrite_messaging_service.dart';
 import 'services/appwrite_service.dart';
 import 'models/message.dart';
+import 'screens/booking/simple_booking_form.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -1427,7 +1428,7 @@ class _BookingScreenState extends State<BookingScreen> {
   DateTime _focusedDay = DateTime.now();
   TimeOfDay _selectedTime = TimeOfDay.now();
   String _selectedCaregiver = 'Sarah Johnson, RN';
-  String _selectedService = 'Personal Care';
+  String _selectedService = 'Personal Care & Daily Activities';
   String _selectedLocation = "Patient's Home";
   final _descriptionController = TextEditingController();
   final _addressController = TextEditingController();
@@ -2012,6 +2013,17 @@ class _CaregiverAdminScreenState extends State<CaregiverAdminScreen> {
           ),
         ),
         child: _buildCurrentScreen(),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (context) => const SimpleBookingForm()),
+          );
+        },
+        icon: const Icon(Icons.add),
+        label: const Text('Test Email Function'),
+        backgroundColor: const Color(0xFF2E7D8A),
+        foregroundColor: Colors.white,
       ),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
