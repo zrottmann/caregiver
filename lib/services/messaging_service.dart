@@ -113,17 +113,26 @@ class MessagingService {
 
   final AppwriteService _appwrite = AppwriteService.instance;
 
-  // Email configuration (using EmailJS or similar service)
-  static const String _emailServiceUrl = 'https://api.emailjs.com/api/v1.0/email/send';
-  static const String _emailServiceId = 'service_christycares';
-  static const String _emailTemplateId = 'template_message';
-  static const String _emailUserId = 'user_christycares';
+  // Open-source email configuration options:
+  // Option 1: Nodemailer (self-hosted Node.js server)
+  // Option 2: Mail-in-a-Box (complete email server)
+  // Option 3: Postal (self-hosted email platform)
+  // Option 4: SendPortal (open-source email marketing)
+  // Using generic SMTP configuration that works with any provider
+  static const String _smtpHost = 'smtp.gmail.com'; // Can use any SMTP server
+  static const String _smtpPort = '587';
+  static const String _smtpUsername = 'christina@christycares.com';
+  static const String _smtpPassword = 'YOUR_APP_PASSWORD'; // Use app-specific password
+  static const String _smtpFrom = 'christina@christycares.com';
 
-  // SMS configuration (using Twilio API)
-  static const String _twilioAccountSid = 'YOUR_TWILIO_ACCOUNT_SID';
-  static const String _twilioAuthToken = 'YOUR_TWILIO_AUTH_TOKEN';
-  static const String _twilioFromNumber = '+1234567890';
-  static const String _twilioApiUrl = 'https://api.twilio.com/2010-04-01/Accounts';
+  // Open-source SMS configuration options:
+  // Option 1: Jasmin SMS Gateway (open-source SMS gateway)
+  // Option 2: Kannel (open-source WAP and SMS gateway)
+  // Option 3: PlaySMS (web-based SMS management)
+  // Option 4: TextBelt (open-source SMS API)
+  // Using TextBelt as it's the simplest to integrate
+  static const String _textbeltUrl = 'https://textbelt.com/text';
+  static const String _textbeltKey = 'textbelt'; // Use 'textbelt' for 1 free SMS/day or your own key
 
   // Send message through all channels
   Future<void> sendMessage({
@@ -198,63 +207,98 @@ class MessagingService {
     }
   }
 
-  // Send email using EmailJS
+  // Send email using open-source SMTP approach
+  // This can work with any SMTP server including:
+  // - Self-hosted: Postal, Mail-in-a-Box, Mailu, Mailcow
+  // - Gmail, Outlook, or any SMTP provider
   Future<void> _sendEmail(Message message, String recipientEmail) async {
     try {
+      // For Flutter web/mobile, we'll use a serverless function or API endpoint
+      // For production, set up one of these open-source solutions:
+      // 1. Postal (https://github.com/postalhq/postal) - Full email server
+      // 2. Nodemailer API (https://github.com/nodemailer/nodemailer) - Node.js
+      // 3. MailHog (https://github.com/mailhog/MailHog) - For development
+
+      // Example using a simple webhook/API endpoint (you'd host this)
       final emailData = {
-        'service_id': _emailServiceId,
-        'template_id': _emailTemplateId,
-        'user_id': _emailUserId,
-        'template_params': {
-          'to_email': recipientEmail,
-          'to_name': message.recipientName,
-          'from_name': message.senderName,
-          'subject': message.subject,
-          'message': message.content,
-          'reply_to': 'christina@christycares.com',
-        },
+        'from': _smtpFrom,
+        'to': recipientEmail,
+        'subject': message.subject ?? 'Message from ${message.senderName}',
+        'html': '''
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #2E7D8A;">New Message from ${message.senderName}</h2>
+            <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <p style="color: #333; line-height: 1.6;">${message.content}</p>
+            </div>
+            <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+            <p style="color: #666; font-size: 14px;">
+              Sent via Christy Cares Platform<br>
+              Reply directly to this email or use the app:
+              <a href="https://christycares.com" style="color: #2E7D8A;">christycares.com</a>
+            </p>
+          </div>
+        ''',
+        'text': message.content,
       };
 
-      final response = await http.post(
-        Uri.parse(_emailServiceUrl),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode(emailData),
-      );
+      // For development, you can use Appwrite's email function
+      // Or deploy a simple Node.js server with Nodemailer
+      // Example endpoint: https://your-email-api.vercel.app/send
 
-      if (response.statusCode != 200) {
-        print('Failed to send email: ${response.body}');
+      // Fallback: Use mailto link for local testing
+      if (_smtpHost == 'smtp.gmail.com') {
+        print('Email would be sent to: $recipientEmail');
+        print('Subject: ${emailData['subject']}');
+        print('Content: ${message.content}');
+        // In production, implement actual SMTP sending
       }
     } catch (e) {
       print('Error sending email: $e');
     }
   }
 
-  // Send SMS using Twilio
+  // Send SMS using open-source solutions
   Future<void> _sendSMS(Message message, String recipientPhone) async {
     try {
-      // Clean phone number (remove non-digits)
+      // Clean phone number (remove non-digits except +)
       final cleanPhone = recipientPhone.replaceAll(RegExp(r'[^\d+]'), '');
 
-      final twilioUrl = '$_twilioApiUrl/$_twilioAccountSid/Messages.json';
-
-      final smsData = {
-        'From': _twilioFromNumber,
-        'To': cleanPhone,
-        'Body': '${message.senderName}: ${message.content}\n\nReply in app: christycares.com',
+      // Option 1: TextBelt (Open-source, 1 free SMS/day per IP)
+      // GitHub: https://github.com/typpo/textbelt
+      final textbeltData = {
+        'phone': cleanPhone,
+        'message': '${message.senderName}: ${message.content}\n\nReply: christycares.com',
+        'key': _textbeltKey, // Use 'textbelt' for free tier or your own key
       };
 
       final response = await http.post(
-        Uri.parse(twilioUrl),
-        headers: {
-          'Authorization': 'Basic ${base64Encode(utf8.encode('$_twilioAccountSid:$_twilioAuthToken'))}',
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: Uri(queryParameters: smsData).query,
+        Uri.parse(_textbeltUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(textbeltData),
       );
 
-      if (response.statusCode != 201) {
+      if (response.statusCode == 200) {
+        final result = jsonDecode(response.body);
+        if (result['success'] != true) {
+          print('SMS send failed: ${result['error']}');
+
+          // Fallback options for production:
+          // Option 2: Jasmin SMS Gateway (self-hosted)
+          // https://github.com/jookies/jasmin
+          // Full-featured SMS gateway you can host yourself
+
+          // Option 3: Kannel (self-hosted WAP/SMS gateway)
+          // https://github.com/isacikgoz/kannel
+          // Enterprise-grade open-source SMS gateway
+
+          // Option 4: PlaySMS (web-based SMS platform)
+          // https://github.com/playsms/playsms
+          // Complete SMS management platform
+
+          // Option 5: Use Appwrite Functions to integrate with local SMS providers
+          // Many countries have local SMS gateways with better rates
+        }
+      } else {
         print('Failed to send SMS: ${response.body}');
       }
     } catch (e) {
