@@ -4,14 +4,93 @@ import 'package:appwrite/models.dart';
 import '../models/auth_state.dart';
 import '../models/user_profile.dart';
 import '../services/auth_service.dart';
+import '../services/simple_auth_service.dart';
 import '../services/user_presence_service.dart';
 import '../services/chat_service.dart';
 
-// Auth state provider that listens to auth service stream
-final authStateProvider = StreamProvider<AuthState>((ref) {
-  final authService = AuthService.instance;
-  return authService.authStateStream;
+// Simple auth service instance
+final _simpleAuthService = SimpleAuthService();
+
+// Auth state notifier that works with SimpleAuthService
+class SimpleAuthNotifier extends StateNotifier<AuthState> {
+  SimpleAuthNotifier() : super(AuthState.loading()) {
+    _checkAuthStatus();
+  }
+
+  Future<void> _checkAuthStatus() async {
+    try {
+      bool isLoggedIn = await _simpleAuthService.isLoggedIn();
+
+      if (isLoggedIn) {
+        final userData = await _simpleAuthService.getCurrentUser();
+        if (userData != null) {
+          // Create a mock User object for compatibility
+          final mockUser = _createMockUser(userData);
+
+          // Create UserProfile from SimpleAuthService data
+          final profile = _createUserProfileFromSimpleAuth(userData);
+
+          state = AuthState.authenticated(user: mockUser, profile: profile);
+        } else {
+          state = AuthState.unauthenticated();
+        }
+      } else {
+        state = AuthState.unauthenticated();
+      }
+    } catch (e) {
+      state = AuthState.unauthenticated();
+    }
+  }
+
+  void refresh() {
+    _checkAuthStatus();
+  }
+}
+
+// Auth state provider that works with SimpleAuthService
+final _simpleAuthNotifier = StateNotifierProvider<SimpleAuthNotifier, AuthState>((ref) {
+  return SimpleAuthNotifier();
 });
+
+final authStateProvider = Provider<AsyncValue<AuthState>>((ref) {
+  final authState = ref.watch(_simpleAuthNotifier);
+  return AsyncValue.data(authState);
+});
+
+// Helper function to create mock User object
+User _createMockUser(Map<String, dynamic> userData) {
+  return User(
+    $id: userData['id'] ?? '1',
+    $createdAt: DateTime.now().toIso8601String(),
+    $updatedAt: DateTime.now().toIso8601String(),
+    name: userData['name'] ?? userData['email']?.split('@')[0] ?? 'User',
+    registration: DateTime.now().toIso8601String(),
+    status: true,
+    labels: [],
+    passwordUpdate: DateTime.now().toIso8601String(),
+    email: userData['email'] ?? '',
+    phone: '',
+    emailVerification: false,
+    phoneVerification: false,
+    mfa: false,
+    prefs: {},
+    targets: [],
+    accessedAt: DateTime.now().toIso8601String(),
+  );
+}
+
+// Helper function to create UserProfile from SimpleAuthService data
+UserProfile _createUserProfileFromSimpleAuth(Map<String, dynamic> userData) {
+  return UserProfile(
+    id: userData['id'] ?? '1',
+    userId: userData['id'] ?? '1',
+    name: userData['name'] ?? userData['email']?.split('@')[0] ?? 'User',
+    email: userData['email'] ?? '',
+    role: userData['userType'] ?? 'patient', // Map userType to role
+    createdAt: DateTime.now(),
+    updatedAt: DateTime.now(),
+  );
+}
 
 // Current user provider - extracts user from auth state
 final currentUserProvider = Provider<User?>((ref) {
@@ -83,17 +162,18 @@ final isCaregiverProvider = Provider<bool>((ref) {
 
 // Auth actions notifier - handles auth actions like login, logout, etc.
 class AuthNotifier extends StateNotifier<AsyncValue<void>> {
-  final AuthService _authService = AuthService.instance;
+  final SimpleAuthService _authService = _simpleAuthService;
   final UserPresenceService _presenceService = UserPresenceService.instance;
   final ChatService _chatService = ChatService.instance;
+  final Ref _ref;
 
-  AuthNotifier() : super(const AsyncValue.data(null));
+  AuthNotifier(this._ref) : super(const AsyncValue.data(null));
 
   // Initialize services
   Future<void> initialize() async {
     state = const AsyncValue.loading();
     try {
-      await _authService.initialize();
+      // SimpleAuthService doesn't need initialization, but we can initialize other services
       await _chatService.initialize();
       state = const AsyncValue.data(null);
     } catch (error, stackTrace) {
@@ -105,14 +185,22 @@ class AuthNotifier extends StateNotifier<AsyncValue<void>> {
   Future<void> signIn(String email, String password, {bool rememberMe = false}) async {
     state = const AsyncValue.loading();
     try {
-      final user = await _authService.signIn(email, password, rememberMe: rememberMe);
-      
-      // Initialize presence service for the user
-      final profile = await _authService.getUserProfile(user.$id);
-      if (profile != null) {
-        await _presenceService.initialize(user.$id, profile.name);
+      bool success = await _authService.login(email, password);
+
+      if (success) {
+        final userData = await _authService.getCurrentUser();
+        if (userData != null) {
+          // Initialize presence service for the user
+          String userName = userData['name'] ?? userData['email']?.split('@')[0] ?? 'User';
+          await _presenceService.initialize(userData['id'] ?? '1', userName);
+        }
+
+        // Refresh the auth state
+        _ref.read(_simpleAuthNotifier.notifier).refresh();
+      } else {
+        throw Exception('Invalid credentials');
       }
-      
+
       state = const AsyncValue.data(null);
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
@@ -154,12 +242,16 @@ class AuthNotifier extends StateNotifier<AsyncValue<void>> {
     try {
       // Set user offline before signing out
       await _presenceService.setOffline();
-      
+
       // Cancel all chat and presence subscriptions
       _chatService.cancelAllSubscriptions();
       _presenceService.cancelAllPresenceSubscriptions();
-      
-      await _authService.signOut();
+
+      await _authService.logout();
+
+      // Refresh the auth state
+      _ref.read(_simpleAuthNotifier.notifier).refresh();
+
       state = const AsyncValue.data(null);
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
@@ -240,17 +332,17 @@ class AuthNotifier extends StateNotifier<AsyncValue<void>> {
   Future<void> tryAutoLogin() async {
     state = const AsyncValue.loading();
     try {
-      await _authService.tryAutoLogin();
-      
-      // If auto login successful, initialize presence
-      final user = await _authService.getCurrentUser();
-      if (user != null) {
-        final profile = await _authService.getUserProfile(user.$id);
-        if (profile != null) {
-          await _presenceService.initialize(user.$id, profile.name);
+      bool isLoggedIn = await _authService.isLoggedIn();
+
+      if (isLoggedIn) {
+        final userData = await _authService.getCurrentUser();
+        if (userData != null) {
+          // Initialize presence service for the user
+          String userName = userData['name'] ?? userData['email']?.split('@')[0] ?? 'User';
+          await _presenceService.initialize(userData['id'] ?? '1', userName);
         }
       }
-      
+
       state = const AsyncValue.data(null);
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
@@ -260,7 +352,11 @@ class AuthNotifier extends StateNotifier<AsyncValue<void>> {
   // Get user profile by ID
   Future<UserProfile?> getUserProfile(String userId) async {
     try {
-      return await _authService.getUserProfile(userId);
+      final userData = await _authService.getCurrentUser();
+      if (userData != null && userData['id'] == userId) {
+        return _createUserProfileFromSimpleAuth(userData);
+      }
+      return null;
     } catch (error) {
       return null;
     }
@@ -276,7 +372,7 @@ class AuthNotifier extends StateNotifier<AsyncValue<void>> {
 
 // Auth notifier provider
 final authNotifierProvider = StateNotifierProvider<AuthNotifier, AsyncValue<void>>((ref) {
-  return AuthNotifier();
+  return AuthNotifier(ref);
 });
 
 // User profile by ID provider (family)
