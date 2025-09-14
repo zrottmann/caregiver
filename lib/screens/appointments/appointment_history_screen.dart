@@ -80,8 +80,8 @@ class _AppointmentHistoryScreenState extends ConsumerState<AppointmentHistoryScr
     if (user == null) return const SizedBox.shrink();
 
     final appointmentsAsync = ref.watch(appointmentsProvider(AppointmentFilters(
-      userId: user.id,
-      status: statusFilter,
+      userId: user.$id,
+      statuses: statusFilter != null ? [statusFilter] : null,
     )));
 
     return appointmentsAsync.when(
@@ -96,8 +96,8 @@ class _AppointmentHistoryScreenState extends ConsumerState<AppointmentHistoryScr
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () => ref.refresh(appointmentsProvider(AppointmentFilters(
-                userId: user.id,
-                status: statusFilter,
+                userId: user.$id,
+                statuses: statusFilter != null ? [statusFilter] : null,
               ))),
               child: const Text('Retry'),
             ),
@@ -110,10 +110,12 @@ class _AppointmentHistoryScreenState extends ConsumerState<AppointmentHistoryScr
         }
 
         return RefreshIndicator(
-          onRefresh: () => ref.refresh(appointmentsProvider(AppointmentFilters(
-            userId: user.id,
-            status: statusFilter,
-          ))).future,
+          onRefresh: () async {
+            ref.invalidate(appointmentsProvider(AppointmentFilters(
+              userId: user.$id,
+              statuses: statusFilter != null ? [statusFilter] : null,
+            )));
+          },
           child: ListView.builder(
             padding: const EdgeInsets.all(16),
             itemCount: appointments.length,

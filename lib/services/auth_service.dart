@@ -125,7 +125,7 @@ class AuthService {
       final document = await _databases.updateDocument(
         databaseId: EnvConfig.databaseId,
         collectionId: 'profiles',
-        documentId: profile.userId,
+        documentId: profile.id,
         data: profile.toMap()..['updatedAt'] = DateTime.now().toIso8601String(),
       );
 

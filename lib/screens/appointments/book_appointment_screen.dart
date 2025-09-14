@@ -219,9 +219,9 @@ class _BookAppointmentScreenState extends ConsumerState<BookAppointmentScreen> {
 
       final appointment = Appointment(
         id: 'apt_${DateTime.now().millisecondsSinceEpoch}',
-        patientId: user.id,
+        patientId: user.$id,
         caregiverId: 'caregiver_${_selectedCaregiver.replaceAll(' ', '_').toLowerCase()}',
-        patientName: user.fullName,
+        patientName: user.name,
         caregiverName: _selectedCaregiver,
         startTime: startDateTime,
         endTime: startDateTime.add(const Duration(hours: 1)),

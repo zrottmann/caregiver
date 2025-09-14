@@ -41,6 +41,10 @@ class Reminder {
     required this.updatedAt,
   });
 
+  bool get isPending => status == ReminderStatus.scheduled;
+
+  Duration get advanceTime => scheduledTime.difference(DateTime.now());
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,

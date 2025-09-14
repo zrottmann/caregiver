@@ -5,7 +5,7 @@ enum EventType {
   appointment,
   availability,
   reminder,
-  break,
+  breakTime,
   personal
 }
 
