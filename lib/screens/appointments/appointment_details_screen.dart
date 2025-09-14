@@ -213,7 +213,6 @@ class _AppointmentDetailsScreenState extends ConsumerState<AppointmentDetailsScr
           const SizedBox(height: 16),
           
           CustomCalendar(
-            showEvents: false,
             onDateSelected: (date) {
               if (date.isAfter(DateTime.now())) {
                 setState(() {

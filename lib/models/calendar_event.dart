@@ -86,7 +86,7 @@ class CalendarEvent {
     return CalendarEvent(
       id: 'event_${appointment.id}',
       title: 'Appointment with ${appointment.caregiverName}',
-      description: appointment.description,
+      description: appointment.description ?? 'No description provided',
       startTime: appointment.startTime,
       endTime: appointment.endTime,
       type: EventType.appointment,

@@ -4,7 +4,8 @@ enum SlotStatus {
   available,
   booked,
   unavailable,
-  blocked
+  blocked,
+  tentative
 }
 
 enum DayOfWeek {
@@ -26,6 +27,12 @@ class TimeSlot {
     required this.startTime,
     required this.endTime,
   }) : duration = endTime.difference(startTime);
+
+  String get timeRange {
+    final startFormatted = '${startTime.hour.toString().padLeft(2, '0')}:${startTime.minute.toString().padLeft(2, '0')}';
+    final endFormatted = '${endTime.hour.toString().padLeft(2, '0')}:${endTime.minute.toString().padLeft(2, '0')}';
+    return '$startFormatted - $endFormatted';
+  }
 
   Map<String, dynamic> toJson() {
     return {
@@ -62,6 +69,25 @@ class AvailabilitySlot {
     required this.createdAt,
     required this.updatedAt,
   });
+
+  String get statusText {
+    switch (status) {
+      case SlotStatus.available:
+        return 'Available';
+      case SlotStatus.booked:
+        return 'Booked';
+      case SlotStatus.unavailable:
+        return 'Unavailable';
+      case SlotStatus.blocked:
+        return 'Blocked';
+      case SlotStatus.tentative:
+        return 'Tentative';
+    }
+  }
+
+  bool get isAvailable => status == SlotStatus.available;
+
+  bool get isBlocked => status == SlotStatus.blocked;
 
   Map<String, dynamic> toJson() {
     return {

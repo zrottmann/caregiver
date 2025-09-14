@@ -94,7 +94,6 @@ class _AvailabilityManagementScreenState extends ConsumerState<AvailabilityManag
                   ),
                   const SizedBox(height: 16),
                   CustomCalendar(
-                    showEvents: false,
                     onDateSelected: (date) {
                       if (date.isAfter(DateTime.now().subtract(const Duration(days: 1)))) {
                         setState(() {
@@ -942,6 +941,8 @@ class _AvailabilityManagementScreenState extends ConsumerState<AvailabilityManag
         return Colors.green;
       case SlotStatus.booked:
         return Colors.blue;
+      case SlotStatus.unavailable:
+        return Colors.grey;
       case SlotStatus.blocked:
         return Colors.red;
       case SlotStatus.tentative:
@@ -955,6 +956,8 @@ class _AvailabilityManagementScreenState extends ConsumerState<AvailabilityManag
         return Icons.check_circle;
       case SlotStatus.booked:
         return Icons.event_busy;
+      case SlotStatus.unavailable:
+        return Icons.cancel;
       case SlotStatus.blocked:
         return Icons.block;
       case SlotStatus.tentative:

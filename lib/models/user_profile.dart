@@ -50,6 +50,8 @@ class UserProfile {
        fullName = name,
        profilePictureUrl = profileImageUrl;
 
+  bool get isCaregiver => role == UserRole.caregiver;
+
   factory UserProfile.fromDocument(models.Document document) {
     final data = document.data;
     return UserProfile(
