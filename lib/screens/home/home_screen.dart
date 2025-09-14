@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/auth_provider.dart';
+import '../appointments/book_appointment_screen.dart';
+import '../appointments/appointment_history_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -65,9 +67,11 @@ class HomeScreen extends ConsumerWidget {
                           title: const Text('Schedule Appointment'),
                           subtitle: const Text('Book a session with a caregiver'),
                           onTap: () {
-                            // TODO: Navigate to appointment booking
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Appointment booking coming soon')),
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const BookAppointmentScreen(),
+                              ),
                             );
                           },
                         ),
@@ -80,6 +84,20 @@ class HomeScreen extends ConsumerWidget {
                             // TODO: Navigate to messages
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text('Messaging coming soon')),
+                            );
+                          },
+                        ),
+                        const Divider(),
+                        ListTile(
+                          leading: const Icon(Icons.history, color: Color(0xFF2E7D8A)),
+                          title: const Text('Appointment History'),
+                          subtitle: const Text('View your past and upcoming appointments'),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const AppointmentHistoryScreen(),
+                              ),
                             );
                           },
                         ),
