@@ -6,6 +6,10 @@ import '../../providers/appointment_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/calendar/custom_calendar.dart';
 import '../../widgets/calendar/event_list.dart';
+import 'appointment_details_screen.dart';
+import 'appointment_history_screen.dart';
+import 'availability_management_screen.dart';
+import 'book_appointment_screen.dart';
 
 class CalendarScreen extends ConsumerStatefulWidget {
   const CalendarScreen({super.key});
@@ -371,22 +375,42 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
         _createNewAppointment();
         break;
       case 'manage_availability':
-        context.push('/availability');
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const AvailabilityManagementScreen(),
+          ),
+        );
         break;
       case 'view_history':
-        context.push('/appointment-history');
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const AppointmentHistoryScreen(),
+          ),
+        );
         break;
     }
   }
 
   void _onEventTap(CalendarEvent event) {
     if (event.appointmentId != null) {
-      context.push('/appointment-details/${event.appointmentId}');
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => AppointmentDetailsScreen(appointmentId: event.appointmentId!),
+        ),
+      );
     }
   }
 
   void _createNewAppointment() {
-    context.push('/book-appointment');
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const BookAppointmentScreen(),
+      ),
+    );
   }
 
   void _showDatePicker(BuildContext context) async {

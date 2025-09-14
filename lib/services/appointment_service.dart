@@ -326,9 +326,6 @@ class AppointmentService {
               date: date,
               timeSlot: timeSlot,
               status: SlotStatus.available,
-              isRecurring: true,
-              recurringDays: days,
-              recurringEndDate: endDate,
               createdAt: DateTime.now(),
               updatedAt: DateTime.now(),
             );
@@ -501,19 +498,19 @@ class AppointmentService {
       final reminders = [
         Reminder.createAppointmentReminder(
           appointmentId: appointment.id,
-          patientId: appointment.patientId,
-          caregiverId: appointment.caregiverId,
+          userId: appointment.patientId,
           appointmentTime: appointment.startTime,
-          appointmentDescription: appointment.services.join(', '),
-          advanceTime: const Duration(hours: 24),
+          patientName: appointment.patientName,
+          caregiverName: appointment.caregiverName,
+          beforeAppointment: const Duration(hours: 24),
         ),
         Reminder.createAppointmentReminder(
           appointmentId: appointment.id,
-          patientId: appointment.patientId,
-          caregiverId: appointment.caregiverId,
+          userId: appointment.patientId,
           appointmentTime: appointment.startTime,
-          appointmentDescription: appointment.services.join(', '),
-          advanceTime: const Duration(hours: 1),
+          patientName: appointment.patientName,
+          caregiverName: appointment.caregiverName,
+          beforeAppointment: const Duration(hours: 1),
         ),
       ];
       
@@ -536,7 +533,7 @@ class AppointmentService {
       
       for (final reminder in reminders) {
         if (reminder.isPending) {
-          final newScheduledTime = appointment.startTime.subtract(reminder.advanceTime ?? const Duration(hours: 1));
+          final newScheduledTime = appointment.startTime.subtract(reminder.advanceTime.abs());
           
           await _databases.updateDocument(
             databaseId: AppConfig.databaseId,
