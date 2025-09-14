@@ -7,7 +7,7 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final userAsync = ref.watch(currentUserProvider);
+    final user = ref.watch(currentUserProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -22,8 +22,7 @@ class HomeScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: userAsync.when(
-        data: (user) => Center(
+      body: Center(
           child: Padding(
             padding: const EdgeInsets.all(24.0),
             child: Column(
@@ -102,24 +101,6 @@ class HomeScreen extends ConsumerWidget {
                 ),
               ],
             ),
-          ),
-        ),
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, size: 60, color: Colors.red),
-              const SizedBox(height: 16),
-              Text('Error: ${error.toString()}'),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () {
-                  ref.refresh(currentUserProvider);
-                },
-                child: const Text('Retry'),
-              ),
-            ],
           ),
         ),
       ),
