@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'config/env_config.dart';
-import 'screens/chat/broadcast_chat_screen.dart';
+import 'screens/home/home_screen.dart';
 import 'screens/auth/login_screen.dart';
 import 'providers/auth_provider.dart';
 
@@ -43,7 +43,7 @@ class AuthWrapper extends ConsumerWidget {
     final isAuthenticated = ref.watch(isAuthenticatedProvider);
 
     if (isAuthenticated) {
-      return const BroadcastChatScreen();
+      return const HomeScreen();
     } else {
       return const LoginScreen();
     }

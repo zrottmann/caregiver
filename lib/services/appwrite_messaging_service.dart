@@ -40,56 +40,6 @@ class AppwriteMessagingService {
     }
   }
 
-  /// Send a broadcast message to all users
-  Future<Message> sendBroadcastMessage({
-    required String senderId,
-    required String senderName,
-    required String content,
-    String? senderEmail,
-    String? senderPhone,
-  }) async {
-    try {
-      // Ensure user is authenticated and set JWT
-      await _ensureAuthenticated();
-
-      // Create message document with proper permissions
-      final document = await _databases.createDocument(
-        databaseId: EnvConfig.databaseId,
-        collectionId: EnvConfig.messagesCollectionId,
-        documentId: ID.unique(),
-        data: {
-          'senderId': senderId,
-          'senderName': senderName,
-          'senderEmail': senderEmail ?? '',
-          'senderPhone': senderPhone ?? '',
-          'receiverId': 'broadcast', // Special ID for broadcast messages
-          'recipientName': 'All Users',
-          'recipientEmail': '',
-          'recipientPhone': '',
-          'content': content,
-          'subject': 'Community Message from $senderName',
-          'timestamp': DateTime.now().toIso8601String(),
-          'createdAt': DateTime.now().toIso8601String(),
-          'isRead': false,
-          'readAt': null,
-          'channel': 'broadcast',
-          'status': 'sent',
-          'attachments': [],
-          'metadata': '{}',
-        },
-        permissions: [
-          Permission.read(Role.any()), // Allow anyone to read broadcast messages
-          Permission.update(Role.user(senderId)), // Allow sender to update
-          Permission.delete(Role.user(senderId)), // Allow sender to delete
-        ],
-      );
-
-      return Message.fromAppwriteDocument(document);
-    } catch (e) {
-      print('Error sending broadcast message: $e');
-      throw Exception('Failed to send broadcast message: ${e.toString()}');
-    }
-  }
 
   /// Send a direct message to a specific user
   Future<Message> sendDirectMessage({
@@ -150,30 +100,6 @@ class AppwriteMessagingService {
     }
   }
 
-  /// Get all messages (for broadcast view)
-  Future<List<Message>> getAllMessages() async {
-    try {
-      // Ensure user is authenticated and set JWT
-      await _ensureAuthenticated();
-
-      final response = await _databases.listDocuments(
-        databaseId: EnvConfig.databaseId,
-        collectionId: EnvConfig.messagesCollectionId,
-        queries: [
-          Query.equal('channel', ['broadcast']),
-          Query.orderDesc('timestamp'),
-          Query.limit(100),
-        ],
-      );
-
-      return response.documents
-          .map((doc) => Message.fromAppwriteDocument(doc))
-          .toList();
-    } catch (e) {
-      print('Error fetching messages: $e');
-      throw Exception('Failed to fetch messages: ${e.toString()}');
-    }
-  }
 
   /// Get messages for a specific user
   Future<List<Message>> getUserMessages(String userId) async {
@@ -188,7 +114,6 @@ class AppwriteMessagingService {
           Query.or([
             Query.equal('senderId', [userId]),
             Query.equal('receiverId', [userId]),
-            Query.equal('receiverId', ['broadcast']),
           ]),
           Query.orderDesc('timestamp'),
           Query.limit(100),
