@@ -1,4 +1,17 @@
+import 'package:appwrite/appwrite.dart';
+import 'env_config.dart';
+
 class AppConfig {
+  static late Client _client;
+
+  static Client get client => _client;
+
+  static void initialize() {
+    _client = Client()
+        .setEndpoint(EnvConfig.appwriteEndpoint)
+        .setProject(EnvConfig.appwriteProjectId);
+  }
+
   // Appwrite Configuration
   static const String endpoint = 'https://cloud.appwrite.io/v1';
   static const String projectId = 'christy-cares-app';

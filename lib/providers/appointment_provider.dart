@@ -41,18 +41,16 @@ Appointment _convertSimpleToAppointment(SimpleAppointment simple) {
     id: simple.id,
     patientId: 'patient-1', // Mock patient ID since SimpleAppointment doesn't have it
     caregiverId: 'caregiver-1', // Mock caregiver ID
-    patientName: simple.patientName ?? 'Patient',
+    patientName: 'Patient',
     caregiverName: simple.caregiverName,
     startTime: simple.dateTime,
     endTime: simple.dateTime.add(const Duration(hours: 1)), // Default 1 hour duration
     status: status,
     type: AppointmentType.oneTime,
-    serviceType: 'General Care', // Default service type
+    services: ['General Care'], // Use services list instead of serviceType
     description: simple.description,
     location: simple.location,
-    locationAddress: simple.locationAddress,
-    cost: simple.price,
-    notes: [],
+    totalAmount: simple.price,
     createdAt: DateTime.now(),
     updatedAt: DateTime.now(),
   );
