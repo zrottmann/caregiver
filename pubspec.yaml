@@ -1,7 +1,6 @@
-name: christy_cares
-description: Christy Cares - Personalized assisted living services by Christina Rottmann
+name: caregiver_platform
+description: Christy Cares - Caregiver Platform
 publish_to: 'none'
-
 version: 1.0.0+1
 
 environment:
@@ -10,25 +9,27 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  cupertino_icons: ^1.0.2
-  http: ^1.0.0
-  shared_preferences: ^2.2.2
-  intl: ^0.18.1
-  table_calendar: ^3.0.9
-  url_launcher: ^6.2.1
+
+  cupertino_icons: ^1.0.6
+
+  appwrite: ^13.0.0
+
   flutter_riverpod: ^2.5.1
-  go_router: ^14.2.7
-  appwrite: ^17.1.0
-  connectivity_plus: ^6.0.5
+
   flutter_dotenv: ^5.1.0
+
+  intl: ^0.19.0
+
+  http: ^1.2.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^3.0.0
+
+  flutter_lints: ^4.0.0
 
 flutter:
   uses-material-design: true
 
-  # assets:
-    # .env file not included for security - using hardcoded values in web deployment
+  assets:
+    - .env

@@ -85,7 +85,7 @@ class _BroadcastChatScreenState extends ConsumerState<BroadcastChatScreen> {
 
     try {
       await _messagingService.sendBroadcastMessage(
-        senderId: currentUser.\$id,
+        senderId: currentUser.$id,
         senderName: currentProfile.name,
         content: content,
       );
@@ -176,7 +176,7 @@ class _BroadcastChatScreenState extends ConsumerState<BroadcastChatScreen> {
                         itemBuilder: (context, index) {
                           final message = _messages[index];
                           final isOwnMessage = currentUser != null &&
-                              message.senderId == currentUser.\$id;
+                              message.senderId == currentUser.$id;
 
                           return _buildMessageBubble(message, isOwnMessage);
                         },

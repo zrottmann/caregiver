@@ -1,469 +1,285 @@
-import 'dart:convert';
 import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/models.dart' as models;
-import 'appwrite_service.dart';
+import '../config/app_config.dart';
 import '../config/env_config.dart';
 import '../models/message.dart';
+import '../services/auth_service.dart';
 
-/// Fully integrated Appwrite messaging service
-/// Everything runs on Appwrite - no external dependencies
 class AppwriteMessagingService {
-  static final AppwriteMessagingService _instance = AppwriteMessagingService._internal();
-  factory AppwriteMessagingService() => _instance;
-  AppwriteMessagingService._internal();
+  late final Client _client;
+  late final Account _account;
+  late final Databases _databases;
+  late final Functions _functions;
+  final AuthService _authService = AuthService();
 
-  final AppwriteService _appwrite = AppwriteService.instance;
+  AppwriteMessagingService() {
+    _initializeClient();
+  }
 
-  // Collection IDs from environment
-  String get messagesCollection => EnvConfig.messagesCollectionId;
-  String get conversationsCollection => 'conversations'; // Add to env if needed
-  String get notificationsCollection => 'notifications'; // Add to env if needed
+  void _initializeClient() {
+    _client = Client()
+        .setEndpoint(EnvConfig.appwriteEndpoint)
+        .setProject(EnvConfig.appwriteProjectId);
 
-  /// Initialize messaging collections in Appwrite
-  Future<void> initializeCollections() async {
+    _account = Account(_client);
+    _databases = Databases(_client);
+    _functions = Functions(_client);
+  }
+
+  Future<void> _ensureAuthenticated() async {
     try {
-      // This would typically be done in Appwrite Console, but documenting structure here
+      final session = await _authService.getCurrentSession();
+      if (session == null) {
+        throw Exception('User not authenticated - no session found');
+      }
 
-      // Messages Collection Schema:
-      // - senderId (string)
-      // - senderName (string)
-      // - senderEmail (string)
-      // - senderPhone (string)
-      // - recipientId (string)
-      // - recipientName (string)
-      // - recipientEmail (string)
-      // - recipientPhone (string)
-      // - content (string)
-      // - subject (string)
-      // - timestamp (datetime)
-      // - isRead (boolean)
-      // - readAt (datetime)
-      // - channel (string: app/email/sms/all)
-      // - status (string: sent/delivered/read/failed)
-      // - attachments (string[])
-      // - metadata (json)
-
-      // Conversations Collection Schema:
-      // - participant1Id (string)
-      // - participant1Name (string)
-      // - participant2Id (string)
-      // - participant2Name (string)
-      // - lastMessage (string)
-      // - lastMessageTime (datetime)
-      // - unreadCount1 (integer)
-      // - unreadCount2 (integer)
-      // - isActive (boolean)
-
-      print('Messaging collections initialized');
+      _client.setJWT(session.secret);
     } catch (e) {
-      print('Error initializing collections: $e');
+      print('Authentication check failed: $e');
+      throw Exception('User not authenticated: ${e.toString()}');
     }
   }
 
-  /// Send a message through Appwrite
-  Future<models.Document> sendMessage({
+  /// Send a broadcast message to all users
+  Future<Message> sendBroadcastMessage({
     required String senderId,
     required String senderName,
-    required String senderEmail,
-    required String recipientId,
-    required String recipientName,
-    required String recipientEmail,
+    required String content,
+    String? senderEmail,
     String? senderPhone,
-    String? recipientPhone,
-    required String content,
-    String? subject,
-    String channel = 'app',
-    List<String>? attachments,
-    Map<String, dynamic>? metadata,
   }) async {
     try {
-      // Create message document
-      final message = await _appwrite.databases.createDocument(
+      // Ensure user is authenticated and set JWT
+      await _ensureAuthenticated();
+
+      // Create message document with proper permissions
+      final document = await _databases.createDocument(
         databaseId: EnvConfig.databaseId,
-        collectionId: messagesCollection,
+        collectionId: EnvConfig.messagesCollectionId,
         documentId: ID.unique(),
         data: {
           'senderId': senderId,
           'senderName': senderName,
-          'senderEmail': senderEmail,
+          'senderEmail': senderEmail ?? '',
           'senderPhone': senderPhone ?? '',
-          'receiverId': recipientId,
-          'recipientName': recipientName,
-          'recipientEmail': recipientEmail,
-          'recipientPhone': recipientPhone ?? '',
-          'content': content,
-          'subject': subject ?? 'New message from $senderName',
-          'timestamp': DateTime.now().toIso8601String(),
-          'isRead': false,
-          'readAt': null,
-          'channel': channel,
-          'status': 'sent',
-          'attachments': attachments ?? [],
-          'metadata': jsonEncode(metadata ?? {}),
-        },
-      );
-
-      // Update conversation
-      await _updateConversation(
-        senderId: senderId,
-        senderName: senderName,
-        recipientId: recipientId,
-        recipientName: recipientName,
-        lastMessage: content,
-      );
-
-      // Trigger notifications based on channel
-      if (channel == 'all' || channel == 'email') {
-        await _triggerEmailNotification(message);
-      }
-
-      if (channel == 'all' || channel == 'sms') {
-        await _triggerSmsNotification(message);
-      }
-
-      // Send push notification
-      await _sendPushNotification(
-        recipientId: recipientId,
-        title: 'New message from $senderName',
-        body: content,
-      );
-
-      return message;
-    } catch (e) {
-      throw Exception('Failed to send message: $e');
-    }
-  }
-
-  /// Get messages for a user
-  Future<List<models.Document>> getMessages(String userId, {int limit = 50}) async {
-    try {
-      final response = await _appwrite.databases.listDocuments(
-        databaseId: EnvConfig.databaseId,
-        collectionId: messagesCollection,
-        queries: [
-          Query.equal('receiverId', userId),
-          Query.orderDesc('\$createdAt'),
-          Query.limit(limit),
-        ],
-      );
-
-      return response.documents;
-    } catch (e) {
-      throw Exception('Failed to get messages: $e');
-    }
-  }
-
-  /// Get conversation between two users
-  Future<List<models.Document>> getConversation(
-    String userId1,
-    String userId2, {
-    int limit = 100,
-  }) async {
-    try {
-      final response = await _appwrite.databases.listDocuments(
-        databaseId: EnvConfig.databaseId,
-        collectionId: messagesCollection,
-        queries: [
-          Query.or([
-            Query.and([
-              Query.equal('senderId', userId1),
-              Query.equal('receiverId', userId2),
-            ]),
-            Query.and([
-              Query.equal('senderId', userId2),
-              Query.equal('receiverId', userId1),
-            ]),
-          ]),
-          Query.orderDesc('timestamp'),
-          Query.limit(limit),
-        ],
-      );
-
-      return response.documents;
-    } catch (e) {
-      throw Exception('Failed to get conversation: $e');
-    }
-  }
-
-  /// Mark message as read
-  Future<void> markAsRead(String messageId) async {
-    try {
-      await _appwrite.databases.updateDocument(
-        databaseId: EnvConfig.databaseId,
-        collectionId: messagesCollection,
-        documentId: messageId,
-        data: {
-          'isRead': true,
-          'readAt': DateTime.now().toIso8601String(),
-          'status': 'read',
-        },
-      );
-    } catch (e) {
-      throw Exception('Failed to mark message as read: $e');
-    }
-  }
-
-  /// Get unread message count
-  Future<int> getUnreadCount(String userId) async {
-    try {
-      final response = await _appwrite.databases.listDocuments(
-        databaseId: EnvConfig.databaseId,
-        collectionId: messagesCollection,
-        queries: [
-          Query.equal('receiverId', userId),
-          Query.equal('isRead', false),
-        ],
-      );
-
-      return response.total;
-    } catch (e) {
-      return 0;
-    }
-  }
-
-  /// Get all conversations for a user
-  Future<List<models.Document>> getConversations(String userId) async {
-    try {
-      final response = await _appwrite.databases.listDocuments(
-        databaseId: EnvConfig.databaseId,
-        collectionId: conversationsCollection,
-        queries: [
-          Query.or([
-            Query.equal('participant1Id', userId),
-            Query.equal('participant2Id', userId),
-          ]),
-          Query.orderDesc('lastMessageTime'),
-        ],
-      );
-
-      return response.documents;
-    } catch (e) {
-      throw Exception('Failed to get conversations: $e');
-    }
-  }
-
-  /// Update or create conversation
-  Future<void> _updateConversation({
-    required String senderId,
-    required String senderName,
-    required String recipientId,
-    required String recipientName,
-    required String lastMessage,
-  }) async {
-    try {
-      // Check if conversation exists
-      final existing = await _appwrite.databases.listDocuments(
-        databaseId: EnvConfig.databaseId,
-        collectionId: conversationsCollection,
-        queries: [
-          Query.or([
-            Query.and([
-              Query.equal('participant1Id', senderId),
-              Query.equal('participant2Id', recipientId),
-            ]),
-            Query.and([
-              Query.equal('participant1Id', recipientId),
-              Query.equal('participant2Id', senderId),
-            ]),
-          ]),
-        ],
-      );
-
-      if (existing.documents.isNotEmpty) {
-        // Update existing conversation
-        final doc = existing.documents.first;
-        final isParticipant1 = doc.data['participant1Id'] == senderId;
-
-        await _appwrite.databases.updateDocument(
-          databaseId: EnvConfig.databaseId,
-          collectionId: conversationsCollection,
-          documentId: doc.$id,
-          data: {
-            'lastMessage': lastMessage,
-            'lastMessageTime': DateTime.now().toIso8601String(),
-            if (!isParticipant1) 'unreadCount1': (doc.data['unreadCount1'] ?? 0) + 1,
-            if (isParticipant1) 'unreadCount2': (doc.data['unreadCount2'] ?? 0) + 1,
-          },
-        );
-      } else {
-        // Create new conversation
-        await _appwrite.databases.createDocument(
-          databaseId: EnvConfig.databaseId,
-          collectionId: conversationsCollection,
-          documentId: ID.unique(),
-          data: {
-            'participant1Id': senderId,
-            'participant1Name': senderName,
-            'participant2Id': recipientId,
-            'participant2Name': recipientName,
-            'lastMessage': lastMessage,
-            'lastMessageTime': DateTime.now().toIso8601String(),
-            'unreadCount1': 0,
-            'unreadCount2': 1,
-            'isActive': true,
-          },
-        );
-      }
-    } catch (e) {
-      print('Error updating conversation: $e');
-    }
-  }
-
-  /// Trigger email notification using Appwrite Functions
-  Future<void> _triggerEmailNotification(models.Document message) async {
-    try {
-      // Create an Appwrite Function that sends emails
-      // Function code would use Appwrite's built-in email service
-      print('Email notification would be sent to: ${message.data['recipientEmail']}');
-      // Note: Using SimpleAppointmentService for actual email sending instead
-    } catch (e) {
-      print('Error triggering email: $e');
-    }
-  }
-
-  /// Trigger SMS notification using Appwrite Functions
-  Future<void> _triggerSmsNotification(models.Document message) async {
-    try {
-      // Create an Appwrite Function that sends SMS
-      // Function can integrate with TextBelt or other open-source SMS providers
-      print('SMS notification would be sent to: ${message.data['recipientPhone']}');
-      // Note: SMS functionality can be implemented separately if needed
-    } catch (e) {
-      print('Error triggering SMS: $e');
-    }
-  }
-
-  /// Send push notification
-  Future<void> _sendPushNotification({
-    required String recipientId,
-    required String title,
-    required String body,
-  }) async {
-    try {
-      // Use Appwrite's push notification feature
-      await _appwrite.databases.createDocument(
-        databaseId: EnvConfig.databaseId,
-        collectionId: notificationsCollection,
-        documentId: ID.unique(),
-        data: {
-          'userId': recipientId,
-          'title': title,
-          'body': body,
-          'timestamp': DateTime.now().toIso8601String(),
-          'isRead': false,
-          'type': 'message',
-        },
-      );
-    } catch (e) {
-      print('Error sending push notification: $e');
-    }
-  }
-
-  /// Subscribe to real-time message updates
-  RealtimeSubscription subscribeToMessages(String userId, Function(models.Document) onMessage) {
-    return _appwrite.realtime.subscribe([
-      'databases.${EnvConfig.databaseId}.collections.$messagesCollection.documents'
-    ]).stream.listen((response) {
-      if (response.events.contains('databases.*.collections.*.documents.*.create')) {
-        final message = models.Document.fromMap(response.payload);
-        if (message.data['receiverId'] == userId) {
-          onMessage(message);
-        }
-      }
-    }) as RealtimeSubscription;
-  }
-
-  /// Delete a message
-  Future<void> deleteMessage(String messageId) async {
-    try {
-      await _appwrite.databases.deleteDocument(
-        databaseId: EnvConfig.databaseId,
-        collectionId: messagesCollection,
-        documentId: messageId,
-      );
-    } catch (e) {
-      throw Exception('Failed to delete message: $e');
-    }
-  }
-
-  /// Search messages
-  Future<List<models.Document>> searchMessages(String userId, String searchTerm) async {
-    try {
-      final response = await _appwrite.databases.listDocuments(
-        databaseId: EnvConfig.databaseId,
-        collectionId: messagesCollection,
-        queries: [
-          Query.or([
-            Query.equal('senderId', userId),
-            Query.equal('receiverId', userId),
-          ]),
-          Query.search('content', searchTerm),
-          Query.orderDesc('timestamp'),
-        ],
-      );
-
-      return response.documents;
-    } catch (e) {
-      throw Exception('Failed to search messages: $e');
-    }
-  }
-
-  /// Send a broadcast message to all users (for community chat)
-  Future<models.Document> sendBroadcastMessage({
-    required String senderId,
-    required String senderName,
-    required String content,
-    String? subject,
-  }) async {
-    try {
-      // Create broadcast message document with special recipient ID 'broadcast'
-      final message = await _appwrite.databases.createDocument(
-        databaseId: EnvConfig.databaseId,
-        collectionId: messagesCollection,
-        documentId: ID.unique(),
-        data: {
-          'senderId': senderId,
-          'senderName': senderName,
-          'senderEmail': '',
-          'senderPhone': '',
           'receiverId': 'broadcast', // Special ID for broadcast messages
           'recipientName': 'All Users',
           'recipientEmail': '',
           'recipientPhone': '',
           'content': content,
-          'subject': subject ?? 'Community message from $senderName',
+          'subject': 'Community Message from $senderName',
           'timestamp': DateTime.now().toIso8601String(),
+          'createdAt': DateTime.now().toIso8601String(),
           'isRead': false,
           'readAt': null,
-          'channel': 'app',
-          'status': 'broadcast',
+          'channel': 'broadcast',
+          'status': 'sent',
           'attachments': [],
-          'metadata': jsonEncode({'type': 'broadcast'}),
+          'metadata': '{}',
         },
-      );
-
-      return message;
-    } catch (e) {
-      throw Exception('Failed to send broadcast message: $e');
-    }
-  }
-
-  /// Get all broadcast messages (community chat)
-  Future<List<Message>> getAllMessages({int limit = 100}) async {
-    try {
-      final response = await _appwrite.databases.listDocuments(
-        databaseId: EnvConfig.databaseId,
-        collectionId: messagesCollection,
-        queries: [
-          Query.equal('receiverId', 'broadcast'), // Get only broadcast messages
-          Query.orderAsc('\$createdAt'), // Oldest first for chat display
-          Query.limit(limit),
+        permissions: [
+          Permission.read(Role.any()), // Allow anyone to read broadcast messages
+          Permission.update(Role.user(senderId)), // Allow sender to update
+          Permission.delete(Role.user(senderId)), // Allow sender to delete
         ],
       );
 
-      return response.documents.map((doc) => Message.fromDocument(doc)).toList();
+      return Message.fromAppwriteDocument(document);
     } catch (e) {
-      throw Exception('Failed to get messages: $e');
+      print('Error sending broadcast message: $e');
+      throw Exception('Failed to send broadcast message: ${e.toString()}');
+    }
+  }
+
+  /// Send a direct message to a specific user
+  Future<Message> sendDirectMessage({
+    required String senderId,
+    required String senderName,
+    required String receiverId,
+    required String content,
+    String? recipientName,
+    String? senderEmail,
+    String? senderPhone,
+    String? recipientEmail,
+    String? recipientPhone,
+    String? subject,
+    List<String>? attachments,
+  }) async {
+    try {
+      // Ensure user is authenticated and set JWT
+      await _ensureAuthenticated();
+
+      // Create message document
+      final document = await _databases.createDocument(
+        databaseId: EnvConfig.databaseId,
+        collectionId: EnvConfig.messagesCollectionId,
+        documentId: ID.unique(),
+        data: {
+          'senderId': senderId,
+          'senderName': senderName,
+          'senderEmail': senderEmail ?? '',
+          'senderPhone': senderPhone ?? '',
+          'receiverId': receiverId,
+          'recipientName': recipientName ?? '',
+          'recipientEmail': recipientEmail ?? '',
+          'recipientPhone': recipientPhone ?? '',
+          'content': content,
+          'subject': subject ?? 'Message from $senderName',
+          'timestamp': DateTime.now().toIso8601String(),
+          'createdAt': DateTime.now().toIso8601String(),
+          'isRead': false,
+          'readAt': null,
+          'channel': 'direct',
+          'status': 'sent',
+          'attachments': attachments ?? [],
+          'metadata': '{}',
+        },
+        permissions: [
+          Permission.read(Role.user(senderId)),
+          Permission.read(Role.user(receiverId)),
+          Permission.update(Role.user(senderId)),
+          Permission.update(Role.user(receiverId)),
+          Permission.delete(Role.user(senderId)),
+        ],
+      );
+
+      return Message.fromAppwriteDocument(document);
+    } catch (e) {
+      print('Error sending direct message: $e');
+      throw Exception('Failed to send direct message: ${e.toString()}');
+    }
+  }
+
+  /// Get all messages (for broadcast view)
+  Future<List<Message>> getAllMessages() async {
+    try {
+      // Ensure user is authenticated and set JWT
+      await _ensureAuthenticated();
+
+      final response = await _databases.listDocuments(
+        databaseId: EnvConfig.databaseId,
+        collectionId: EnvConfig.messagesCollectionId,
+        queries: [
+          Query.equal('channel', ['broadcast']),
+          Query.orderDesc('timestamp'),
+          Query.limit(100),
+        ],
+      );
+
+      return response.documents
+          .map((doc) => Message.fromAppwriteDocument(doc))
+          .toList();
+    } catch (e) {
+      print('Error fetching messages: $e');
+      throw Exception('Failed to fetch messages: ${e.toString()}');
+    }
+  }
+
+  /// Get messages for a specific user
+  Future<List<Message>> getUserMessages(String userId) async {
+    try {
+      // Ensure user is authenticated and set JWT
+      await _ensureAuthenticated();
+
+      final response = await _databases.listDocuments(
+        databaseId: EnvConfig.databaseId,
+        collectionId: EnvConfig.messagesCollectionId,
+        queries: [
+          Query.or([
+            Query.equal('senderId', [userId]),
+            Query.equal('receiverId', [userId]),
+            Query.equal('receiverId', ['broadcast']),
+          ]),
+          Query.orderDesc('timestamp'),
+          Query.limit(100),
+        ],
+      );
+
+      return response.documents
+          .map((doc) => Message.fromAppwriteDocument(doc))
+          .toList();
+    } catch (e) {
+      print('Error fetching user messages: $e');
+      throw Exception('Failed to fetch user messages: ${e.toString()}');
+    }
+  }
+
+  /// Mark a message as read
+  Future<void> markMessageAsRead(String messageId) async {
+    try {
+      // Ensure user is authenticated and set JWT
+      await _ensureAuthenticated();
+
+      await _databases.updateDocument(
+        databaseId: EnvConfig.databaseId,
+        collectionId: EnvConfig.messagesCollectionId,
+        documentId: messageId,
+        data: {
+          'isRead': true,
+          'readAt': DateTime.now().toIso8601String(),
+        },
+      );
+    } catch (e) {
+      print('Error marking message as read: $e');
+      throw Exception('Failed to mark message as read: ${e.toString()}');
+    }
+  }
+
+  /// Delete a message
+  Future<void> deleteMessage(String messageId) async {
+    try {
+      // Ensure user is authenticated and set JWT
+      await _ensureAuthenticated();
+
+      await _databases.deleteDocument(
+        databaseId: EnvConfig.databaseId,
+        collectionId: EnvConfig.messagesCollectionId,
+        documentId: messageId,
+      );
+    } catch (e) {
+      print('Error deleting message: $e');
+      throw Exception('Failed to delete message: ${e.toString()}');
+    }
+  }
+
+  /// Call the send-message function (alternative method using Appwrite Functions)
+  Future<Map<String, dynamic>> sendMessageViaFunction({
+    required String senderId,
+    required String senderName,
+    required String receiverId,
+    required String content,
+    String? recipientName,
+    String? senderEmail,
+    String? recipientEmail,
+    bool sendEmail = false,
+  }) async {
+    try {
+      // Ensure user is authenticated and set JWT
+      await _ensureAuthenticated();
+
+      final execution = await _functions.createExecution(
+        functionId: 'send-message',
+        body: {
+          'senderId': senderId,
+          'senderName': senderName,
+          'senderEmail': senderEmail ?? '',
+          'receiverId': receiverId,
+          'recipientName': recipientName ?? '',
+          'recipientEmail': recipientEmail ?? '',
+          'content': content,
+          'subject': 'Message from $senderName',
+          'sendEmail': sendEmail,
+        }.toString(),
+      );
+
+      if (execution.responseStatusCode == 200) {
+        return {'success': true, 'data': execution.responseBody};
+      } else {
+        throw Exception('Function execution failed: ${execution.responseBody}');
+      }
+    } catch (e) {
+      print('Error calling send-message function: $e');
+      throw Exception('Failed to send message via function: ${e.toString()}');
     }
   }
 }
