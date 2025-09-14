@@ -5,7 +5,6 @@ import '../../models/calendar_event.dart';
 import '../../providers/appointment_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/calendar/custom_calendar.dart';
-import '../../widgets/calendar/event_list.dart';
 import 'appointment_details_screen.dart';
 import 'appointment_history_screen.dart';
 import 'availability_management_screen.dart';
@@ -120,12 +119,12 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
         children: [
           // Calendar
           CustomCalendar(
+            selectedDate: _selectedDate,
             onDateSelected: (date) {
               setState(() {
                 _selectedDate = date;
               });
             },
-            onEventTap: _onEventTap,
           ),
           
           const SizedBox(height: 24),
@@ -223,7 +222,11 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
       itemCount: 7,
       itemBuilder: (context, index) {
         final date = startOfWeek.add(Duration(days: index));
-        final dayEvents = events.where((event) => event.isOnDate(date)).toList();
+        final dayEvents = events.where((event) =>
+          event.startTime.year == date.year &&
+          event.startTime.month == date.month &&
+          event.startTime.day == date.day
+        ).toList();
         
         return Card(
           margin: const EdgeInsets.only(bottom: 8),
@@ -276,9 +279,16 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
               if (dayEvents.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.all(8),
-                  child: EventList(
-                    events: dayEvents,
-                    onEventTap: _onEventTap,
+                  child: Column(
+                    children: dayEvents.map((event) =>
+                      Card(
+                        child: ListTile(
+                          title: Text(event.title),
+                          subtitle: Text(event.description ?? ''),
+                          onTap: () => _onEventTap(event),
+                        ),
+                      )
+                    ).toList(),
                   ),
                 )
               else
@@ -350,9 +360,18 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
     return dayEventsAsync.when(
       data: (events) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: EventList(
-          events: events,
-          onEventTap: _onEventTap,
+        child: ListView.builder(
+          itemCount: events.length,
+          itemBuilder: (context, index) {
+            final event = events[index];
+            return Card(
+              child: ListTile(
+                title: Text(event.title),
+                subtitle: Text(event.description ?? ''),
+                onTap: () => _onEventTap(event),
+              ),
+            );
+          },
         ),
       ),
       loading: () => const Center(child: CircularProgressIndicator()),
