@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/auth_provider.dart';
 import '../appointments/book_appointment_screen.dart';
 import '../appointments/appointment_history_screen.dart';
+import '../profile/profile_screen.dart';
+import '../messages/messages_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -81,9 +83,11 @@ class HomeScreen extends ConsumerWidget {
                           title: const Text('Messages'),
                           subtitle: const Text('Chat with your caregiver'),
                           onTap: () {
-                            // TODO: Navigate to messages
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Messaging coming soon')),
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const MessagesScreen(),
+                              ),
                             );
                           },
                         ),
@@ -107,9 +111,11 @@ class HomeScreen extends ConsumerWidget {
                           title: const Text('Profile'),
                           subtitle: const Text('Manage your account'),
                           onTap: () {
-                            // TODO: Navigate to profile
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Profile management coming soon')),
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const ProfileScreen(),
+                              ),
                             );
                           },
                         ),

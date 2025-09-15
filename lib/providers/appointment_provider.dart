@@ -58,15 +58,17 @@ Appointment _convertSimpleToAppointment(SimpleAppointment simple) {
 
 // Appointment providers
 final appointmentsProvider = FutureProvider.autoDispose.family<List<Appointment>, AppointmentFilters?>((ref, filters) async {
-  final simpleService = ref.read(simpleAppointmentServiceProvider);
+  final appointmentService = ref.read(appointmentServiceProvider);
 
-  // Get appointments from SimpleAppointmentService
-  final simpleAppointments = await simpleService.getAppointments();
-
-  // Convert to Appointment objects
-  List<Appointment> appointments = simpleAppointments
-      .map((simple) => _convertSimpleToAppointment(simple))
-      .toList();
+  // Get appointments from AppointmentService (Appwrite)
+  List<Appointment> appointments = await appointmentService.getAppointments(
+    userId: filters?.userId,
+    caregiverId: filters?.caregiverId,
+    patientId: filters?.patientId,
+    startDate: filters?.startDate,
+    endDate: filters?.endDate,
+    statuses: filters?.statuses,
+  );
 
   // Apply filters if provided
   if (filters != null) {

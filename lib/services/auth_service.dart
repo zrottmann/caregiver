@@ -5,18 +5,13 @@ import '../config/env_config.dart';
 import '../models/user_profile.dart';
 
 class AuthService {
-  late final Client _client;
   late final Account _account;
   late final Databases _databases;
   static AuthService? _instance;
 
   AuthService._internal() {
-    _client = Client()
-        .setEndpoint(EnvConfig.appwriteEndpoint)
-        .setProject(EnvConfig.appwriteProjectId);
-
-    _account = Account(_client);
-    _databases = Databases(_client);
+    _account = Account(AppConfig.client);
+    _databases = Databases(AppConfig.client);
   }
 
   factory AuthService() {
@@ -24,7 +19,7 @@ class AuthService {
     return _instance!;
   }
 
-  Client get client => _client;
+  Client get client => AppConfig.client;
 
   Future<models.Session> login(String email, String password) async {
     try {

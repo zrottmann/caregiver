@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'config/env_config.dart';
+import 'config/app_config.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/auth/login_screen.dart';
 import 'providers/auth_provider.dart';
@@ -9,6 +10,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await EnvConfig.init();
+  AppConfig.initialize();
 
   runApp(
     const ProviderScope(
